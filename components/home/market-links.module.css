@@ -1,0 +1,121 @@
+.card {
+  position: relative;
+  max-width: fit-content;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-content: center;
+  gap: 1rem;
+  backdrop-filter: blur(15px);
+  box-shadow:
+    inset 0 0 20px rgba(255, 255, 255, 0.09),
+    inset 0 0 5px rgba(255, 255, 255, 0.12),
+    0 16px 50px rgba(0, 0, 0, 0.45);
+  transition: 0.5s;
+}
+
+.card:hover {
+  animation: ease-out 5s;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.list {
+  padding: 1rem;
+  display: flex;
+  list-style: none;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+.item {
+  cursor: pointer;
+}
+
+.svg {
+  transition: all 0.3s;
+  padding: 1rem;
+  height: 60px;
+  width: 60px;
+  border-radius: 100%;
+  color: rgba(var(--accent), 0.95);
+  fill: currentColor;
+  box-shadow:
+    inset 0 0 20px rgba(255, 255, 255, 0.12),
+    inset 0 0 5px rgba(255, 255, 255, 0.16),
+    0 12px 26px rgba(0, 0, 0, 0.45);
+}
+
+.text {
+  opacity: 0;
+  border-radius: 5px;
+  padding: 5px;
+  transition: all 0.3s;
+  color: rgba(var(--accent), 0.95);
+  background-color: rgba(var(--panel), 0.8);
+  position: absolute;
+  z-index: 9999;
+  box-shadow:
+    -5px 0 1px rgba(153, 153, 153, 0.2),
+    -10px 0 1px rgba(153, 153, 153, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.12),
+    inset 0 0 5px rgba(255, 255, 255, 0.16),
+    0 14px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* isometric projection */
+.isoPro {
+  position: relative;
+  transition: 0.5s;
+}
+
+.isoPro:hover .svg {
+  transform: translate(5px, -5px);
+}
+
+.isoPro:hover a > .svg {
+  transform: translate(15px, -15px);
+  border-radius: 100%;
+}
+
+.isoPro:hover .text {
+  opacity: 1;
+  transform: translate(25px, -2px) skew(-5deg);
+}
+
+.isoPro span {
+  opacity: 0;
+  position: absolute;
+  color: rgba(var(--accent), 1);
+  border-color: rgba(var(--accent), 1);
+  box-shadow:
+    inset 0 0 20px rgba(255, 255, 255, 0.12),
+    inset 0 0 5px rgba(255, 255, 255, 0.16),
+    0 12px 26px rgba(0, 0, 0, 0.45);
+  border-radius: 50%;
+  transition: all 0.3s;
+  height: 60px;
+  width: 60px;
+}
+
+.isoPro:hover span {
+  opacity: 1;
+}
+
+.isoPro:hover span:nth-child(1) {
+  opacity: 0.2;
+}
+
+.isoPro:hover span:nth-child(2) {
+  opacity: 0.4;
+  transform: translate(5px, -5px);
+}
+
+.isoPro:hover span:nth-child(3) {
+  opacity: 0.6;
+  transform: translate(10px, -10px);
+}
