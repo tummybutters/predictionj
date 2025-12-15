@@ -86,7 +86,11 @@ export function PolymarketEventSearchBanner() {
           Couldn’t load Polymarket events right now.
         </div>
       ) : (
-        <PolymarketEventCarousel events={events} paused={status === "loading"} />
+        <PolymarketEventCarousel
+          events={events}
+          paused={status === "loading" || Boolean(query.trim())}
+          loop={!query.trim()}
+        />
       )}
     </div>
   );

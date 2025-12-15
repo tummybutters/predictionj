@@ -38,9 +38,11 @@ export function PolymarketEventCarousel({
   events,
   className,
   paused,
+  loop = true,
 }: {
   events: GammaEventLite[];
   paused?: boolean;
+  loop?: boolean;
   className?: string;
 }) {
   const scrollerRef = React.useRef<HTMLDivElement | null>(null);
@@ -57,8 +59,8 @@ export function PolymarketEventCarousel({
   const items = React.useMemo(() => {
     const base = events.slice(0, 20);
     if (base.length === 0) return [];
-    return base.concat(base);
-  }, [events]);
+    return loop ? base.concat(base) : base;
+  }, [events, loop]);
 
   const stop = React.useCallback(() => {
     if (rafRef.current !== null) {
@@ -121,6 +123,8 @@ export function PolymarketEventCarousel({
     pointerId: 0,
     startX: 0,
     startLeft: 0,
+    captured: false,
+    moved: false,
   });
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -131,10 +135,11 @@ export function PolymarketEventCarousel({
       pointerId: e.pointerId,
       startX: e.clientX,
       startLeft: el.scrollLeft,
+      captured: false,
+      moved: false,
     };
     setIsInteracting(true);
     stop();
-    el.setPointerCapture(e.pointerId);
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -143,6 +148,12 @@ export function PolymarketEventCarousel({
     if (!drag.current.active || drag.current.pointerId !== e.pointerId) return;
 
     const dx = e.clientX - drag.current.startX;
+    if (!drag.current.captured && Math.abs(dx) > 6) {
+      drag.current.captured = true;
+      drag.current.moved = true;
+      el.setPointerCapture(e.pointerId);
+    }
+    if (!drag.current.captured) return;
     el.scrollLeft = drag.current.startLeft - dx;
   }
 
@@ -153,7 +164,7 @@ export function PolymarketEventCarousel({
 
     drag.current.active = false;
     try {
-      el.releasePointerCapture(e.pointerId);
+      if (drag.current.captured) el.releasePointerCapture(e.pointerId);
     } catch {
       // Ignore.
     }
@@ -168,27 +179,20 @@ export function PolymarketEventCarousel({
     <div
       ref={scrollerRef}
       className={cn(
-        "no-scrollbar flex w-full gap-2 overflow-x-auto scroll-smooth",
+        "no-scrollbar flex w-full gap-2 overflow-x-auto select-none",
+        "cursor-grab active:cursor-grabbing",
         className,
       )}
-      onMouseEnter={() => {
-        setIsInteracting(true);
-        stop();
-      }}
-      onMouseLeave={() => {
-        scheduleResume();
-      }}
-      onFocusCapture={() => {
-        setIsInteracting(true);
-        stop();
-      }}
-      onBlurCapture={() => {
-        scheduleResume();
-      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
+      onWheel={() => {
+        setIsInteracting(true);
+        stop();
+        scheduleResume();
+      }}
+      style={{ touchAction: "pan-x" }}
       aria-label="Trending events carousel"
     >
       {items.length === 0 ? (
@@ -235,4 +239,3 @@ export function PolymarketEventCarousel({
     </div>
   );
 }
-
