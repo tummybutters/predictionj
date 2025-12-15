@@ -48,6 +48,8 @@ export function PolymarketEventCarousel({
   const scrollerRef = React.useRef<HTMLDivElement | null>(null);
   const rafRef = React.useRef<number | null>(null);
   const resumeTimeoutRef = React.useRef<number | null>(null);
+  const lastTsRef = React.useRef<number | null>(null);
+  const carryRef = React.useRef(0);
 
   const [isInteracting, setIsInteracting] = React.useState(false);
 
@@ -67,6 +69,7 @@ export function PolymarketEventCarousel({
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    lastTsRef.current = null;
   }, []);
 
   const scheduleResume = React.useCallback(() => {
@@ -87,22 +90,38 @@ export function PolymarketEventCarousel({
     if (isInteracting) return;
     if (items.length <= 1) return;
 
-    const speedPxPerFrame = 0.35;
+    const speedPxPerSecond = 28;
+    const speedPxPerMs = speedPxPerSecond / 1000;
 
-    const tick = () => {
+    const tick = (ts: number) => {
       const node = scrollerRef.current;
       if (!node) return;
-      const half = node.scrollWidth / 2;
 
-      node.scrollLeft += speedPxPerFrame;
-      if (node.scrollLeft >= half) node.scrollLeft -= half;
+      if (lastTsRef.current === null) lastTsRef.current = ts;
+      const dt = ts - lastTsRef.current;
+      lastTsRef.current = ts;
+
+      carryRef.current += dt * speedPxPerMs;
+      const px = Math.trunc(carryRef.current);
+      if (px !== 0) {
+        carryRef.current -= px;
+        node.scrollLeft += px;
+
+        if (loop) {
+          const half = node.scrollWidth / 2;
+          if (half > 0) {
+            if (node.scrollLeft >= half) node.scrollLeft -= half;
+            if (node.scrollLeft < 0) node.scrollLeft += half;
+          }
+        }
+      }
 
       rafRef.current = requestAnimationFrame(tick);
     };
 
     stop();
     rafRef.current = requestAnimationFrame(tick);
-  }, [isInteracting, items.length, paused, prefersReducedMotion, stop]);
+  }, [isInteracting, items.length, loop, paused, prefersReducedMotion, stop]);
 
   React.useEffect(() => {
     start();
