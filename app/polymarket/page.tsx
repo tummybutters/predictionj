@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
-import { PolymarketTrendingEvents } from "@/components/polymarket/trending-events";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,7 @@ export default async function PolymarketPage() {
         <div>
           <h1 className="text-lg font-semibold">Polymarket</h1>
           <p className="mt-1 text-sm text-muted">
-            Browse events for prompts, then write your own prediction.
+            Search events for prompts, then write your own prediction.
           </p>
         </div>
         <Link href="/">
@@ -29,9 +28,10 @@ export default async function PolymarketPage() {
           </Button>
         </Link>
       </header>
-
-      <PolymarketTrendingEvents limit={18} />
+      <div className="rounded-2xl border border-border/25 bg-panel/30 p-4 text-sm text-muted">
+        Tip: click an event to see all its markets, then hit “Make prediction” to
+        turn it into your own commitment (no trading required).
+      </div>
     </main>
   );
 }
-

@@ -8,7 +8,6 @@ import { getDashboard } from "@/services/dashboard/get-dashboard";
 import { QuickCapture } from "@/components/home/quick-capture";
 import { MarketLinksCard } from "@/components/home/market-links";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
-import { PolymarketTrendingEvents } from "@/components/polymarket/trending-events";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +46,6 @@ export default async function HomePage() {
           </Link>
         </div>
       </header>
-
-      <PolymarketTrendingEvents />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex justify-end sm:order-2">

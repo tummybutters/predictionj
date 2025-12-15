@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 
 import { RetractableSearchBanner } from "@/components/search/retractable-search-banner";
 import { Button } from "@/components/ui/button";
+import { PolymarketEventCarousel } from "@/components/polymarket/event-carousel";
 
 type GammaEventLite = {
   id: string;
@@ -16,14 +16,6 @@ type GammaEventLite = {
   volume1mo?: string;
   volume?: string;
 };
-
-function toDateInputValue(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  const d = new Date(value);
-  if (!Number.isFinite(d.getTime())) return undefined;
-  return d.toISOString().slice(0, 10);
-}
 
 function toNumber(value: unknown): number {
   if (typeof value === "number") return value;
@@ -85,7 +77,7 @@ export function PolymarketEventSearchBanner() {
   const below = (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2 text-xs text-muted">
-        <span>{query.trim() ? "Search results" : "Trending events"}</span>
+        <span>{query.trim() ? "Matches" : "Trending"}</span>
         {status === "loading" ? <span aria-live="polite">Loading…</span> : null}
       </div>
 
@@ -93,58 +85,9 @@ export function PolymarketEventSearchBanner() {
         <div className="rounded-xl border border-border/25 bg-panel/35 p-3 text-sm text-muted">
           Couldn’t load Polymarket events right now.
         </div>
-      ) : null}
-
-      {status !== "error" && events.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/25 bg-panel/25 p-3 text-sm text-muted">
-          No events found.
-        </div>
-      ) : null}
-
-      {events.length > 0 ? (
-        <ol className="space-y-2">
-          {events.slice(0, 5).map((e) => {
-            const resolveBy = toDateInputValue(e.endDate);
-            const prefill = e.title;
-            const createHref = `/predictions?prefill=${encodeURIComponent(prefill)}${
-              resolveBy ? `&resolve_by=${encodeURIComponent(resolveBy)}` : ""
-            }`;
-
-            return (
-              <li
-                key={e.id}
-                className="flex items-start justify-between gap-3 rounded-xl border border-border/25 bg-panel/30 p-3"
-              >
-                <div className="min-w-0">
-                  <Link
-                    href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
-                    className="block text-sm font-medium hover:underline"
-                  >
-                    {e.title}
-                  </Link>
-                  {resolveBy ? (
-                    <div className="mt-1 font-mono text-xs text-muted">
-                      Ends: {resolveBy}
-                    </div>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Link href={`/polymarket/events/${encodeURIComponent(e.slug)}`}>
-                    <Button variant="secondary" size="sm" className="h-8 px-2">
-                      Details
-                    </Button>
-                  </Link>
-                  <Link href={createHref}>
-                    <Button size="sm" className="h-8 px-2">
-                      Make prediction
-                    </Button>
-                  </Link>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      ) : null}
+      ) : (
+        <PolymarketEventCarousel events={events} paused={status === "loading"} />
+      )}
     </div>
   );
 
