@@ -1,0 +1,37 @@
+import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
+import { PolymarketTrendingEvents } from "@/components/polymarket/trending-events";
+
+export const dynamic = "force-dynamic";
+
+export default async function PolymarketPage() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
+  return (
+    <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
+      <PolymarketEventSearchBanner />
+
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-semibold">Polymarket</h1>
+          <p className="mt-1 text-sm text-muted">
+            Browse events for prompts, then write your own prediction.
+          </p>
+        </div>
+        <Link href="/">
+          <Button variant="secondary" size="sm">
+            Home
+          </Button>
+        </Link>
+      </header>
+
+      <PolymarketTrendingEvents limit={18} />
+    </main>
+  );
+}
+

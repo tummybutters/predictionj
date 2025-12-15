@@ -64,6 +64,7 @@ type Props = {
   placeholder?: string;
   collapsedStorageKey?: string;
   hint?: string;
+  below?: React.ReactNode;
   right?: React.ReactNode;
   className?: string;
 };
@@ -75,6 +76,7 @@ export function RetractableSearchBanner({
   placeholder = "Search…",
   collapsedStorageKey = "pj_search_banner_collapsed",
   hint,
+  below,
   right,
   className,
 }: Props) {
@@ -162,8 +164,8 @@ export function RetractableSearchBanner({
           </Button>
         </div>
         {hint ? <div className="text-xs text-muted">{hint}</div> : null}
+        {below ? <div className="pt-2">{below}</div> : null}
       </form>
     </div>
   );
 }
-

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { getDashboard } from "@/services/dashboard/get-dashboard";
 import { QuickCapture } from "@/components/home/quick-capture";
 import { MarketLinksCard } from "@/components/home/market-links";
-import { HomeSearchBanner } from "@/components/search/home-search-banner";
+import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
+import { PolymarketTrendingEvents } from "@/components/polymarket/trending-events";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
-      <HomeSearchBanner />
+      <PolymarketEventSearchBanner />
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold">Dashboard</h1>
@@ -46,6 +47,8 @@ export default async function HomePage() {
           </Link>
         </div>
       </header>
+
+      <PolymarketTrendingEvents />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex justify-end sm:order-2">
