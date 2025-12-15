@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getDashboard } from "@/services/dashboard/get-dashboard";
 import { QuickCapture } from "@/components/home/quick-capture";
 import { MarketLinksCard } from "@/components/home/market-links";
+import { HomeSearchBanner } from "@/components/search/home-search-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
+      <HomeSearchBanner />
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold">Dashboard</h1>

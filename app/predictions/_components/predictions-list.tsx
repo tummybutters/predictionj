@@ -1,6 +1,8 @@
+"use client";
+
 import Link from "next/link";
 
-import type { PredictionRow } from "@/db/predictions";
+import type { PredictionRow } from "@/db/predictions.types";
 import { Card, CardContent } from "@/components/ui/card";
 
 type Props = {
