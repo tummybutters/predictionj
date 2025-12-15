@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { PolymarketEventCarousel } from "@/components/polymarket/event-carousel";
-import styles from "@/components/home/quick-capture.module.css";
+import styles from "@/components/polymarket/event-search.module.css";
+import Link from "next/link";
 
 type GammaEventLite = {
   id: string;
@@ -64,58 +64,24 @@ function ChevronDownIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-function SparkIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M10 2.5l1.4 4.3L15.7 8.2l-4.3 1.4L10 13.9 8.6 9.6 4.3 8.2l4.3-1.4L10 2.5Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function GlobeIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M10 17.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M2.5 10h15"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10 2.5c2.1 2.1 3.3 4.8 3.3 7.5S12.1 15.4 10 17.5c-2.1-2.1-3.3-4.8-3.3-7.5S7.9 4.6 10 2.5Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function PolymarketEventSearchBanner() {
-  const router = useRouter();
   const [query, setQuery] = React.useState("");
-  const [events, setEvents] = React.useState<GammaEventLite[]>([]);
-  const [status, setStatus] = React.useState<"idle" | "loading" | "error">("idle");
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [trending, setTrending] = React.useState<GammaEventLite[]>([]);
+  const [results, setResults] = React.useState<GammaEventLite[]>([]);
+  const [searchStatus, setSearchStatus] = React.useState<"idle" | "loading" | "error">("idle");
+  const [trendingStatus, setTrendingStatus] = React.useState<"idle" | "loading" | "error">("idle");
+  const [carouselOpen, setCarouselOpen] = React.useState(true);
+  const [resultsOpen, setResultsOpen] = React.useState(false);
 
-  const latestRequestId = React.useRef(0);
+  const latestSearchRequestId = React.useRef(0);
+  const latestTrendingRequestId = React.useRef(0);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const collapsedStorageKey = "pj_polymarket_search_collapsed";
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     try {
-      const raw = localStorage.getItem(collapsedStorageKey);
-      setCollapsed(raw === "1");
+      const raw = localStorage.getItem("pj_polymarket_carousel_open");
+      if (raw === "0") setCarouselOpen(false);
     } catch {
       // Ignore.
     }
@@ -123,48 +89,78 @@ export function PolymarketEventSearchBanner() {
 
   React.useEffect(() => {
     try {
-      localStorage.setItem(collapsedStorageKey, collapsed ? "1" : "0");
+      localStorage.setItem("pj_polymarket_carousel_open", carouselOpen ? "1" : "0");
     } catch {
       // Ignore.
     }
-  }, [collapsed]);
+  }, [carouselOpen]);
 
   React.useEffect(() => {
-    if (collapsed) return;
-    inputRef.current?.focus();
-  }, [collapsed]);
+    const requestId = ++latestTrendingRequestId.current;
+    setTrendingStatus("loading");
 
-  React.useEffect(() => {
-    const requestId = ++latestRequestId.current;
-    const q = query.trim();
-
-    setStatus("loading");
-
-    const handle = window.setTimeout(async () => {
+    void (async () => {
       try {
-        const url = q
-          ? `/api/polymarket/search?q=${encodeURIComponent(q)}`
-          : `/api/polymarket/trending?limit=5`;
-        const res = await fetch(url, { headers: { accept: "application/json" } });
+        const res = await fetch(`/api/polymarket/trending?limit=14`, {
+          headers: { accept: "application/json" },
+        });
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
         const data = (await res.json()) as { events?: GammaEventLite[] };
 
-        if (latestRequestId.current !== requestId) return;
-
-        const next = (data.events ?? []).slice();
-        if (!q) next.sort((a, b) => score(b) - score(a));
-
-        setEvents(next);
-        setStatus("idle");
+        if (latestTrendingRequestId.current !== requestId) return;
+        const next = (data.events ?? []).slice().sort((a, b) => score(b) - score(a));
+        setTrending(next);
+        setTrendingStatus("idle");
       } catch {
-        if (latestRequestId.current !== requestId) return;
-        setEvents([]);
-        setStatus("error");
+        if (latestTrendingRequestId.current !== requestId) return;
+        setTrending([]);
+        setTrendingStatus("error");
       }
-    }, q ? 200 : 0);
+    })();
+  }, []);
+
+  React.useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      setSearchStatus("idle");
+      return;
+    }
+
+    const requestId = ++latestSearchRequestId.current;
+    setSearchStatus("loading");
+
+    const handle = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/polymarket/search?q=${encodeURIComponent(q)}`, {
+          headers: { accept: "application/json" },
+        });
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data = (await res.json()) as { events?: GammaEventLite[] };
+
+        if (latestSearchRequestId.current !== requestId) return;
+        setResults((data.events ?? []).slice(0, 10));
+        setSearchStatus("idle");
+      } catch {
+        if (latestSearchRequestId.current !== requestId) return;
+        setResults([]);
+        setSearchStatus("error");
+      }
+    }, 200);
 
     return () => window.clearTimeout(handle);
   }, [query]);
+
+  React.useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      const el = rootRef.current;
+      if (!el) return;
+      if (el.contains(e.target as Node)) return;
+      setResultsOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -172,118 +168,146 @@ export function PolymarketEventSearchBanner() {
     if (trimmed !== query) setQuery(trimmed);
   }
 
-  if (collapsed) {
-    return (
-      <div className="glass-panel rounded-2xl px-2 py-1.5">
-        <button
-          type="button"
-          className="flex h-9 w-full items-center justify-between gap-2 rounded-xl px-3 text-sm text-muted hover:bg-panel/35 hover:text-text"
-          onClick={() => setCollapsed(false)}
-          aria-label="Expand Polymarket search"
-        >
-          <span>Search Polymarket events</span>
-          <ChevronDownIcon className="h-4 w-4" />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="glass-panel rounded-2xl px-4 py-3">
+    <div ref={rootRef} className="glass-panel rounded-2xl px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <form onSubmit={handleSubmit} className={styles.container} role="search">
-          <input
-            ref={inputRef}
-            className={styles.input}
-            type="text"
-            placeholder="Search Polymarket events…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search Polymarket events"
-            inputMode="search"
-            autoComplete="off"
-            spellCheck={false}
-          />
+        <div className="relative flex-1">
+          <form onSubmit={handleSubmit} className={styles.container} role="search">
+            <input
+              ref={inputRef}
+              className={styles.input}
+              type="text"
+              placeholder="Search Polymarket events…"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setResultsOpen(true);
+              }}
+              onFocus={() => setResultsOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setResultsOpen(false);
+              }}
+              aria-label="Search Polymarket events"
+              inputMode="search"
+              autoComplete="off"
+              spellCheck={false}
+            />
 
-          <div className={styles.modes} aria-label="Shortcuts">
             <button
-              type="button"
-              className={styles.modeLabel}
-              title="Trending"
-              aria-label="Trending"
-              onClick={() => setQuery("")}
+              type="submit"
+              className={styles.submit}
+              aria-label="Search"
+              title="Search"
             >
-              <SparkIcon className="h-[18px] w-[18px]" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m5 12 7-7 7 7" />
+                <path d="M12 19V5" />
+              </svg>
             </button>
-            <button
-              type="button"
-              className={styles.modeLabel}
-              title="Explore Polymarket"
-              aria-label="Explore Polymarket"
-              onClick={() => router.push("/polymarket")}
-            >
-              <GlobeIcon className="h-[18px] w-[18px]" />
-            </button>
-          </div>
+          </form>
 
-          <button
-            type="submit"
-            className={styles.submit}
-            aria-label="Search"
-            title="Search"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m5 12 7-7 7 7" />
-              <path d="M12 19V5" />
-            </svg>
-          </button>
-        </form>
+          {resultsOpen ? (
+            <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 rounded-2xl border border-border/25 bg-panel/80 p-2 shadow-glass backdrop-blur-md">
+              <div className="flex items-center justify-between gap-2 px-2 py-1 text-xs text-muted">
+                <span>{query.trim() ? "Search results" : "Type to search events"}</span>
+                {searchStatus === "loading" ? <span aria-live="polite">Loading…</span> : null}
+              </div>
+
+              {query.trim() && searchStatus === "error" ? (
+                <div className="rounded-xl border border-border/25 bg-panel/35 p-3 text-sm text-muted">
+                  Couldn’t load results.
+                </div>
+              ) : null}
+
+              {query.trim() && searchStatus !== "loading" && results.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border/25 bg-panel/25 p-3 text-sm text-muted">
+                  No events found.
+                </div>
+              ) : null}
+
+              {results.length > 0 ? (
+                <ol className="max-h-[320px] space-y-2 overflow-auto p-1">
+                  {results.map((e) => {
+                    const createHref = `/predictions?prefill=${encodeURIComponent(e.title)}`;
+
+                    return (
+                      <li
+                        key={e.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border/25 bg-panel/30 p-3"
+                      >
+                        <Link
+                          href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
+                          className="min-w-0 flex-1"
+                          onClick={() => setResultsOpen(false)}
+                        >
+                          <div className="line-clamp-1 text-sm font-medium hover:underline">
+                            {e.title}
+                          </div>
+                        </Link>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Link href={`/polymarket/events/${encodeURIComponent(e.slug)}`}>
+                            <Button variant="secondary" size="sm" className="h-8 px-2">
+                              Details
+                            </Button>
+                          </Link>
+                          <Link href={createHref}>
+                            <Button size="sm" className="h-8 w-8 p-0" aria-label="Make prediction">
+                              +
+                            </Button>
+                          </Link>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className="h-9 w-9 p-0 text-muted hover:text-text"
-          onClick={() => setCollapsed(true)}
-          aria-label="Collapse Polymarket search"
-          title="Collapse"
+          onClick={() => setCarouselOpen((v) => !v)}
+          aria-label={carouselOpen ? "Hide carousel" : "Show carousel"}
+          title={carouselOpen ? "Hide carousel" : "Show carousel"}
         >
-          <ChevronUpIcon className="h-4 w-4" />
+          {carouselOpen ? (
+            <ChevronUpIcon className="h-4 w-4" />
+          ) : (
+            <ChevronDownIcon className="h-4 w-4" />
+          )}
         </Button>
       </div>
 
-      <div className="mt-2 text-xs text-muted">
-        Use events as prompts; then turn one into your own prediction.
-      </div>
-
-      <div className="mt-3 space-y-2">
-        <div className="flex items-center justify-between gap-2 text-xs text-muted">
-          <span>{query.trim() ? "Matches" : "Trending"}</span>
-          {status === "loading" ? <span aria-live="polite">Loading…</span> : null}
-        </div>
-
-        {status === "error" ? (
-          <div className="rounded-xl border border-border/25 bg-panel/35 p-3 text-sm text-muted">
-            Couldn’t load Polymarket events right now.
+      {carouselOpen ? (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted">
+            <span>Trending</span>
+            {trendingStatus === "loading" ? <span aria-live="polite">Loading…</span> : null}
           </div>
-        ) : (
-          <PolymarketEventCarousel
-            events={events}
-            paused={status === "loading" || Boolean(query.trim())}
-            loop={!query.trim()}
-          />
-        )}
-      </div>
+
+          {trendingStatus === "error" ? (
+            <div className="rounded-xl border border-border/25 bg-panel/35 p-3 text-sm text-muted">
+              Couldn’t load Polymarket events right now.
+            </div>
+          ) : (
+            <PolymarketEventCarousel events={trending} paused={trendingStatus === "loading"} loop />
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
