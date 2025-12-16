@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { getDashboard } from "@/services/dashboard/get-dashboard";
 import { QuickCapture } from "@/components/home/quick-capture";
 import { MarketLinksCard } from "@/components/home/market-links";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
+import { LandingHero } from "@/components/landing/landing-hero";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ function formatDateTime(s: string): string {
 
 export default async function HomePage() {
   const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  if (!userId) return <LandingHero />;
 
   const dashboard = await getDashboard();
 
