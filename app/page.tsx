@@ -44,6 +44,11 @@ export default async function HomePage() {
               Predictions
             </Button>
           </Link>
+          <Link href="/ai">
+            <Button variant="secondary" size="sm">
+              AI
+            </Button>
+          </Link>
         </div>
       </header>
 

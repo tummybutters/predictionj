@@ -5,6 +5,7 @@ Production-ready foundation for a modular Next.js 14 App Router codebase.
 - Copy `.env.example` to `.env.local` and fill in:
   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`
+  - `OPENAI_API_KEY` (for `/ai`)
 
 ```bash
 npm install
