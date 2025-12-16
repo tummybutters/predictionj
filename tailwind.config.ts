@@ -18,6 +18,12 @@ export default {
         glass:
           "0 18px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(255,255,255,.06)",
       },
+      transitionTimingFunction: {
+        spring: "cubic-bezier(0.175, 0.885, 0.32, 1.05)",
+      },
+      transitionDuration: {
+        350: "350ms",
+      },
     },
   },
   plugins: [],

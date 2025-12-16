@@ -18,7 +18,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center rounded-xl text-sm font-medium transition-[transform,box-shadow,background-color,border-color,color,filter] duration-200 ease-out motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 disabled:pointer-events-none disabled:opacity-50",
         variant === "default" &&
           "bg-accent text-zinc-950 shadow-plush hover:brightness-105 active:translate-y-[1px]",
         variant === "secondary" &&
