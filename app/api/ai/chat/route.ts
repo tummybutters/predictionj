@@ -246,7 +246,7 @@ export async function POST(req: Request) {
     beliefs: relevantBeliefs,
   });
 
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = "gpt-5-mini";
 
   return streamOpenAIText({
     model,
@@ -255,4 +255,3 @@ export async function POST(req: Request) {
     messages: [{ role: "system", content: system }, { role: "system", content: context }, ...parsed.data.messages],
   });
 }
-
