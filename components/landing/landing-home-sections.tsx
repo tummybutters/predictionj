@@ -149,7 +149,7 @@ function MiniMock({
 
 export function LandingHomeSections() {
   return (
-    <div className="mt-24 space-y-28 pb-8">
+    <div className="space-y-28">
       <section className="grid items-start gap-10 md:grid-cols-12">
         <Reveal className="md:col-span-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/45 bg-white/16 px-4 py-2 text-[12px] font-semibold tracking-[0.18em] text-black/60 shadow-[0_18px_60px_rgba(0,0,0,0.10)] backdrop-blur-md">
@@ -464,4 +464,3 @@ export function LandingHomeSections() {
     </div>
   );
 }
-

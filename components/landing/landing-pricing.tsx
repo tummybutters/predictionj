@@ -120,7 +120,7 @@ function SecondaryCtaButton({ children }: { children: React.ReactNode }) {
 export function LandingPricing() {
   return (
     <LandingShell active="pricing">
-      <main className="flex flex-1 flex-col justify-center">
+      <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 pb-20 pt-28">
         <div className="mx-auto w-full max-w-5xl">
           <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/45 bg-white/18 px-4 py-2 text-[12px] font-semibold tracking-[0.18em] text-black/60 shadow-[0_18px_60px_rgba(0,0,0,0.12)] backdrop-blur-md">
@@ -245,4 +245,3 @@ export function LandingPricing() {
     </LandingShell>
   );
 }
-
