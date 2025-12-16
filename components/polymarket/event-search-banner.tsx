@@ -3,6 +3,8 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InsetPanel, Panel } from "@/components/ui/panel";
 import { PolymarketEventCarousel } from "@/components/polymarket/event-carousel";
 import styles from "@/components/polymarket/event-search.module.css";
 import Link from "next/link";
@@ -189,7 +191,7 @@ export function PolymarketEventSearchBanner() {
   const hasQuery = query.trim().length > 0;
 
   return (
-    <div ref={rootRef} className="glass-panel rounded-2xl px-4 py-3">
+    <Panel ref={rootRef} className="rounded-3xl p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs text-muted">Trending</div>
         <Button
@@ -210,15 +212,15 @@ export function PolymarketEventSearchBanner() {
       </div>
 
       {carouselOpen ? (
-        <div className="mt-2 rounded-2xl border border-border/30 bg-panel/20 p-2">
+        <InsetPanel className="mt-3 rounded-3xl p-2">
           {trendingStatus === "error" ? (
-            <div className="rounded-xl border border-border/35 bg-panel/55 p-3 text-sm text-muted">
+            <EmptyState className="rounded-2xl p-4">
               Couldn’t load Polymarket events right now.
-            </div>
+            </EmptyState>
           ) : (
             <PolymarketEventCarousel events={trending} paused={trendingStatus === "loading"} loop />
           )}
-        </div>
+        </InsetPanel>
       ) : null}
 
       <div className="mt-3">
@@ -252,22 +254,18 @@ export function PolymarketEventSearchBanner() {
           </form>
 
           {hasQuery && resultsOpen ? (
-            <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 rounded-2xl border border-border/40 bg-panel/95 p-2 shadow-glass backdrop-blur-md">
+            <Panel className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 rounded-3xl border-border/15 bg-panel/95 p-2 shadow-glass backdrop-blur-md">
               <div className="flex items-center justify-between gap-2 px-2 py-1 text-xs text-muted">
                 <span>Top results</span>
                 {searchStatus === "loading" ? <span aria-live="polite">Loading…</span> : null}
               </div>
 
               {searchStatus === "error" ? (
-                <div className="rounded-xl border border-border/35 bg-panel/55 p-3 text-sm text-muted">
-                  Couldn’t load results.
-                </div>
+                <EmptyState className="rounded-2xl p-4">Couldn’t load results.</EmptyState>
               ) : null}
 
               {searchStatus !== "loading" && results.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border/35 bg-panel/40 p-3 text-sm text-muted">
-                  No events found.
-                </div>
+                <EmptyState className="rounded-2xl p-4">No events found.</EmptyState>
               ) : null}
 
               {results.length > 0 ? (
@@ -276,40 +274,39 @@ export function PolymarketEventSearchBanner() {
                     const createHref = `/predictions?prefill=${encodeURIComponent(e.title)}`;
 
                     return (
-                      <li
-                        key={e.id}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-border/35 bg-panel/60 p-3 hover:bg-panel/70"
-                      >
-                        <Link
-                          href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
-                          className="min-w-0 flex-1"
-                          onClick={() => setResultsOpen(false)}
-                        >
-                          <div className="line-clamp-1 text-sm font-medium hover:underline">
-                            {e.title}
+                      <li key={e.id}>
+                        <InsetPanel className="flex items-center justify-between gap-3 rounded-2xl border-border/15 bg-panel/60 p-3 transition-colors duration-200 ease-out hover:bg-panel/70">
+                          <Link
+                            href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
+                            className="min-w-0 flex-1"
+                            onClick={() => setResultsOpen(false)}
+                          >
+                            <div className="line-clamp-1 text-sm font-medium hover:underline">
+                              {e.title}
+                            </div>
+                          </Link>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Link href={`/polymarket/events/${encodeURIComponent(e.slug)}`}>
+                              <Button variant="secondary" size="sm" className="h-8 px-2">
+                                Details
+                              </Button>
+                            </Link>
+                            <Link href={createHref} aria-label="Make prediction">
+                              <Button size="sm" className="h-8 w-8 p-0">
+                                +
+                              </Button>
+                            </Link>
                           </div>
-                        </Link>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Link href={`/polymarket/events/${encodeURIComponent(e.slug)}`}>
-                            <Button variant="secondary" size="sm" className="h-8 px-2">
-                              Details
-                            </Button>
-                          </Link>
-                          <Link href={createHref} aria-label="Make prediction">
-                            <Button size="sm" className="h-8 w-8 p-0">
-                              +
-                            </Button>
-                          </Link>
-                        </div>
+                        </InsetPanel>
                       </li>
                     );
                   })}
                 </ol>
               ) : null}
-            </div>
+            </Panel>
           ) : null}
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }

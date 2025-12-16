@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Panel } from "@/components/ui/panel";
 
 type Props = {
   title: string;
@@ -24,14 +24,14 @@ export function JournalEntryForm({
   defaultValues,
 }: Props) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="text-sm font-medium">{title}</div>
-        {description ? (
-          <div className="mt-1 text-sm text-muted">{description}</div>
-        ) : null}
-      </CardHeader>
-      <CardContent>
+    <Panel className="p-5">
+      <div className="text-sm font-semibold tracking-[-0.01em] text-text/80">
+        {title}
+      </div>
+      {description ? (
+        <div className="mt-1 text-sm text-muted">{description}</div>
+      ) : null}
+      <div className="mt-4">
         <form action={action} className="space-y-4">
           {defaultValues?.id ? (
             <input type="hidden" name="id" value={defaultValues.id} />
@@ -63,7 +63,7 @@ export function JournalEntryForm({
             <Button type="submit">{submitLabel}</Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   );
 }

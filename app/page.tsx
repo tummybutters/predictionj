@@ -1,13 +1,15 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getDashboard } from "@/services/dashboard/get-dashboard";
 import { QuickCapture } from "@/components/home/quick-capture";
 import { MarketLinksCard } from "@/components/home/market-links";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
 import { LandingHero } from "@/components/landing/landing-hero";
+import { PageHeader } from "@/components/app/page-header";
+import { Section } from "@/components/app/section";
+import { Panel } from "@/components/ui/panel";
 
 export const dynamic = "force-dynamic";
 
@@ -24,33 +26,31 @@ export default async function HomePage() {
   const dashboard = await getDashboard();
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
+    <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
       <PolymarketEventSearchBanner />
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted">
-            Read-only. Computed from your existing data.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/journal">
-            <Button variant="secondary" size="sm">
-              Journal
-            </Button>
-          </Link>
-          <Link href="/predictions">
-            <Button variant="secondary" size="sm">
-              Predictions
-            </Button>
-          </Link>
-          <Link href="/ai">
-            <Button variant="secondary" size="sm">
-              AI
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Read-only. Computed from your existing data."
+        actions={
+          <>
+            <Link href="/journal">
+              <Button variant="secondary" size="sm">
+                Journal
+              </Button>
+            </Link>
+            <Link href="/predictions">
+              <Button variant="secondary" size="sm">
+                Predictions
+              </Button>
+            </Link>
+            <Link href="/ai">
+              <Button variant="secondary" size="sm">
+                AI
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex justify-end sm:order-2">
@@ -61,14 +61,13 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted">Quick Stats</h2>
+      <Section title="Quick Stats">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <div className="text-sm font-medium">Journal entries</div>
-            </CardHeader>
-            <CardContent className="space-y-1 text-sm">
+          <Panel className="p-5">
+            <div className="text-sm font-semibold tracking-[-0.01em] text-text/80">
+              Journal entries
+            </div>
+            <div className="mt-3 space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted">Last 7 days</span>
                 <span className="font-medium">
@@ -87,14 +86,14 @@ export default async function HomePage() {
                   {dashboard.quick_stats.journal_entries.all_time}
                 </span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Panel>
 
-          <Card>
-            <CardHeader>
-              <div className="text-sm font-medium">Predictions</div>
-            </CardHeader>
-            <CardContent className="space-y-1 text-sm">
+          <Panel className="p-5">
+            <div className="text-sm font-semibold tracking-[-0.01em] text-text/80">
+              Predictions
+            </div>
+            <div className="mt-3 space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted">Open</span>
                 <span className="font-medium">
@@ -107,15 +106,14 @@ export default async function HomePage() {
                   {dashboard.quick_stats.predictions.resolved}
                 </span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Panel>
         </div>
-      </section>
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted">Due Soon</h2>
-        <Card>
-          <CardContent className="p-4">
+      <Section title="Due Soon">
+        <Panel>
+          <div className="p-5">
             {dashboard.due_soon.length === 0 ? (
               <div className="text-sm text-muted">No predictions due soon.</div>
             ) : (
@@ -134,14 +132,13 @@ export default async function HomePage() {
                 ))}
               </ol>
             )}
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </Panel>
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted">Recently Resolved</h2>
-        <Card>
-          <CardContent className="p-4">
+      <Section title="Recently Resolved">
+        <Panel>
+          <div className="p-5">
             {dashboard.recently_resolved.length === 0 ? (
               <div className="text-sm text-muted">No resolved predictions yet.</div>
             ) : (
@@ -162,14 +159,13 @@ export default async function HomePage() {
                 ))}
               </ol>
             )}
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </Panel>
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted">Recent Journal</h2>
-        <Card>
-          <CardContent className="p-4">
+      <Section title="Recent Journal">
+        <Panel>
+          <div className="p-5">
             {dashboard.recent_journal.length === 0 ? (
               <div className="text-sm text-muted">No journal entries yet.</div>
             ) : (
@@ -188,9 +184,9 @@ export default async function HomePage() {
                 ))}
               </ol>
             )}
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </Panel>
+      </Section>
     </main>
   );
 }

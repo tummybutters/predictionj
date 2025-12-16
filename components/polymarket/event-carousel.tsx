@@ -192,7 +192,7 @@ export function PolymarketEventCarousel({
   }
 
   const thin =
-    "h-[64px] rounded-xl border border-border/25 bg-panel/25 px-3 py-2";
+    "h-[64px] rounded-2xl border border-border/15 bg-panel2/55 px-3 py-2 shadow-inset backdrop-blur-md";
 
   return (
     <div

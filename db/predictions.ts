@@ -9,6 +9,7 @@ export type PredictionRow = {
   user_id: string;
   claim: string;
   confidence: number;
+  reference_line: number;
   resolution_date: string;
   resolved_at: string | null;
   outcome: PredictionOutcome | null;
@@ -20,6 +21,7 @@ export type PredictionRow = {
 export type CreatePredictionInput = {
   claim: string;
   confidence: number;
+  reference_line?: number;
   resolution_date: string;
 };
 
@@ -39,7 +41,7 @@ export async function listOpen(
   const { data, error } = await supabase
     .from("predictions")
     .select(
-      "id, user_id, claim, confidence, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
+      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
     )
     .eq("user_id", userId)
     .is("resolved_at", null)
@@ -88,7 +90,7 @@ export async function listDueSoon(
   const { data, error } = await supabase
     .from("predictions")
     .select(
-      "id, user_id, claim, confidence, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
+      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
     )
     .eq("user_id", userId)
     .is("resolved_at", null)
@@ -110,7 +112,7 @@ export async function listRecentlyResolved(
   const { data, error } = await supabase
     .from("predictions")
     .select(
-      "id, user_id, claim, confidence, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
+      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
     )
     .eq("user_id", userId)
     .not("resolved_at", "is", null)
@@ -131,7 +133,7 @@ export async function list(
   const { data, error } = await supabase
     .from("predictions")
     .select(
-      "id, user_id, claim, confidence, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
+      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
     )
     .eq("user_id", userId)
     .order("resolution_date", { ascending: true })
@@ -150,7 +152,7 @@ export async function get(
   const { data, error } = await supabase
     .from("predictions")
     .select(
-      "id, user_id, claim, confidence, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
+      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
     )
     .eq("user_id", userId)
     .eq("id", predictionId)
@@ -172,10 +174,11 @@ export async function create(
       user_id: userId,
       claim: input.claim,
       confidence: input.confidence,
+      reference_line: input.reference_line ?? 0.5,
       resolution_date: input.resolution_date,
     })
     .select(
-      "id, user_id, claim, confidence, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
+      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
     )
     .single();
 
@@ -195,6 +198,9 @@ export async function update(
     .update({
       ...(patch.claim !== undefined ? { claim: patch.claim } : {}),
       ...(patch.confidence !== undefined ? { confidence: patch.confidence } : {}),
+      ...(patch.reference_line !== undefined
+        ? { reference_line: patch.reference_line }
+        : {}),
       ...(patch.resolution_date !== undefined
         ? { resolution_date: patch.resolution_date }
         : {}),
@@ -207,7 +213,7 @@ export async function update(
     .eq("user_id", userId)
     .eq("id", predictionId)
     .select(
-      "id, user_id, claim, confidence, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
+      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
     )
     .maybeSingle();
 

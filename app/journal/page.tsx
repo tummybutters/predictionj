@@ -5,6 +5,7 @@ import { list } from "@/db/journal_entries";
 import { ensureUser } from "@/services/auth/ensure-user";
 import { createBlankJournalEntryAction } from "@/app/journal/actions";
 import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/ui/panel";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,9 @@ export default async function JournalIndexPage({
   if (latest) redirect(`/journal/${latest.id}`);
 
   return (
-    <section className="glass-panel rounded-2xl p-6">
+    <Panel className="p-6">
       {searchParams?.error === "validation" ? (
-        <div className="rounded-xl border border-accent/30 bg-panel/60 p-3 text-sm text-accent">
+        <div className="rounded-2xl border border-accent/20 bg-panel/55 p-3 text-sm text-accent">
           Invalid input. Please try again.
         </div>
       ) : null}
@@ -34,6 +35,6 @@ export default async function JournalIndexPage({
       <form action={createBlankJournalEntryAction} className="mt-4">
         <Button type="submit">Create first entry</Button>
       </form>
-    </section>
+    </Panel>
   );
 }

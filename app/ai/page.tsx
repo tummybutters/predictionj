@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { AiChat } from "@/components/ai/chat";
+import { PageHeader } from "@/components/app/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -12,21 +13,20 @@ export default async function AiPage() {
   if (!userId) redirect("/sign-in");
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">Assistant</h1>
-          <p className="mt-1 text-sm text-muted">ChatGPT-style chat, grounded in your data.</p>
-        </div>
-        <Link href="/">
-          <Button variant="secondary" size="sm">
-            Home
-          </Button>
-        </Link>
-      </header>
+    <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+      <PageHeader
+        title="Assistant"
+        subtitle="ChatGPT-style chat, grounded in your data."
+        actions={
+          <Link href="/">
+            <Button variant="secondary" size="sm">
+              Home
+            </Button>
+          </Link>
+        }
+      />
 
       <AiChat />
     </main>
   );
 }
-

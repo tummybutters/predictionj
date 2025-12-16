@@ -3,8 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getMarketBySlug } from "@/services/polymarket/gamma";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/app/page-header";
+import { Section } from "@/components/app/section";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InsetPanel, Panel } from "@/components/ui/panel";
+import { Pill } from "@/components/ui/pill";
 
 export const dynamic = "force-dynamic";
 
@@ -52,65 +56,73 @@ export default async function PolymarketMarketPage({
   }`;
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">{market.question ?? "Market"}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-            {resolveBy ? <span className="font-mono">Ends: {resolveBy}</span> : null}
-            <span className="font-mono">
-              Bid: {market.bestBid ?? "—"} · Ask: {market.bestAsk ?? "—"}
+    <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+      <PageHeader
+        title={<span className="text-balance">{market.question ?? "Market"}</span>}
+        subtitle={
+          <span className="text-muted">
+            <span className="font-mono text-text/80">Slug {market.slug}</span>
+            {" · "}
+            {resolveBy ? (
+              <>
+                Ends <span className="font-mono text-text/80">{resolveBy}</span>
+                {" · "}
+              </>
+            ) : null}
+            <span className="font-mono text-text/80">
+              Bid {market.bestBid ?? "—"} · Ask {market.bestAsk ?? "—"}
             </span>
-            <span className="font-mono">Slug: {market.slug}</span>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link href="/polymarket">
-            <Button variant="secondary" size="sm">
-              Back
-            </Button>
-          </Link>
-          <Link href={createHref}>
-            <Button size="sm">Make prediction</Button>
-          </Link>
-        </div>
-      </header>
+          </span>
+        }
+        actions={
+          <>
+            <Link href="/polymarket">
+              <Button variant="secondary" size="sm">
+                Back
+              </Button>
+            </Link>
+            <Link href={createHref}>
+              <Button size="sm">Make prediction</Button>
+            </Link>
+          </>
+        }
+      />
 
       {market.description ? (
-        <Card>
-          <CardHeader>
-            <div className="text-sm font-medium text-muted">Details</div>
-          </CardHeader>
-          <CardContent className="whitespace-pre-wrap text-sm">
-            {market.description}
-          </CardContent>
-        </Card>
+        <Panel className="p-5">
+          <Section title="Details">
+            <div className="whitespace-pre-wrap text-sm text-text/85">
+              {market.description}
+            </div>
+          </Section>
+        </Panel>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <div className="text-sm font-medium text-muted">Outcomes</div>
-        </CardHeader>
-        <CardContent>
+      <Panel className="p-5">
+        <Section title="Outcomes">
           {outcomes && prices && outcomes.length === prices.length ? (
-            <ul className="space-y-2 text-sm">
+            <div className="grid gap-2">
               {outcomes.map((o, i) => (
-                <li key={`${o}-${i}`} className="flex items-center justify-between gap-3">
-                  <span className="font-medium">{o}</span>
-                  <span className="font-mono text-muted">
-                    {formatPercentFromPriceString(prices[i]) ?? prices[i]}
-                  </span>
-                </li>
+                <InsetPanel
+                  key={`${o}-${i}`}
+                  className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
+                >
+                  <div className="min-w-0 text-sm font-semibold text-text/85">
+                    {o}
+                  </div>
+                  <Pill className="px-2 py-1">
+                    <span className="font-mono">
+                      {formatPercentFromPriceString(prices[i]) ?? prices[i]}
+                    </span>
+                  </Pill>
+                </InsetPanel>
               ))}
-            </ul>
-          ) : (
-            <div className="text-sm text-muted">
-              Outcome prices unavailable.
             </div>
+          ) : (
+            <EmptyState className="rounded-2xl">Outcome prices unavailable.</EmptyState>
           )}
-        </CardContent>
-      </Card>
+        </Section>
+      </Panel>
     </main>
   );
 }
-

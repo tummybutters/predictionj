@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Panel } from "@/components/ui/panel";
 
 type Props = {
   title: string;
@@ -13,6 +13,7 @@ type Props = {
     id?: string;
     question?: string;
     confidence?: number;
+    reference_line?: number;
     resolve_by?: string;
   };
 };
@@ -25,11 +26,11 @@ export function PredictionForm({
   defaultValues,
 }: Props) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="text-sm font-medium">{title}</div>
-      </CardHeader>
-      <CardContent>
+    <Panel className="p-5">
+      <div className="text-sm font-semibold tracking-[-0.01em] text-text/80">
+        {title}
+      </div>
+      <div className="mt-4">
         <form action={action} className="space-y-4">
           {defaultValues?.id ? (
             <input type="hidden" name="id" value={defaultValues.id} />
@@ -81,13 +82,32 @@ export function PredictionForm({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="reference_line">Line (reference %)</Label>
+            <Input
+              id="reference_line"
+              name="reference_line"
+              disabled={disabled}
+              inputMode="decimal"
+              placeholder="e.g. 50"
+              defaultValue={
+                defaultValues?.reference_line !== undefined
+                  ? String(Math.round(defaultValues.reference_line * 100))
+                  : "50"
+              }
+            />
+            <div className="text-xs text-muted">
+              A static reference probability (your “market line” snapshot). No live pricing.
+            </div>
+          </div>
+
           <div className="flex items-center justify-end">
             <Button type="submit" disabled={disabled}>
               {submitLabel}
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   );
 }

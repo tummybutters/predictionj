@@ -3,6 +3,8 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { InsetPanel, Panel } from "@/components/ui/panel";
+import { Pill } from "@/components/ui/pill";
 import type { JournalEntryRow } from "@/db/journal_entries";
 import { cn } from "@/lib/cn";
 import { deleteJournalEntryAction, saveJournalEntryDraftAction } from "@/app/journal/actions";
@@ -218,7 +220,7 @@ export function JournalEditor({ entry }: Props) {
 
   return (
     <div key={entry.id} className={cn("h-full", styles.enter)}>
-      <div className="glass-panel rounded-2xl p-4">
+      <Panel className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="truncate text-sm font-medium">
@@ -228,13 +230,17 @@ export function JournalEditor({ entry }: Props) {
           </div>
 
           <div className="flex items-center gap-2">
-            <div
+            <Pill
+              tone={
+                saveState === "saved"
+                  ? "positive"
+                  : saveState === "error"
+                    ? "danger"
+                    : "neutral"
+              }
               className={cn(
-                "rounded-full border px-2 py-1 font-mono text-[11px] transition-[background-color,border-color,color] duration-350 ease-spring motion-reduce:transition-none",
-                saveState === "saving" && "border-border/35 bg-panel/35 text-muted",
-                saveState === "saved" && "border-accent/30 bg-panel/40 text-accent",
-                saveState === "error" && "border-red-500/30 bg-panel/35 text-red-300",
-                saveState === "idle" && "border-border/25 bg-panel/25 text-muted",
+                "px-2 py-1 font-mono text-[11px]",
+                saveState === "idle" && "opacity-80",
               )}
               aria-live="polite"
             >
@@ -245,7 +251,7 @@ export function JournalEditor({ entry }: Props) {
                   : saveState === "error"
                     ? "Save failed"
                     : "Ready"}
-            </div>
+            </Pill>
 
             <form action={deleteJournalEntryAction}>
               <input type="hidden" name="id" value={entry.id} />
@@ -256,7 +262,7 @@ export function JournalEditor({ entry }: Props) {
           </div>
         </div>
 
-        <div className={cn("relative mt-4 rounded-2xl border border-border/25 p-4 shadow-glass", styles.page)}>
+        <InsetPanel className={cn("relative mt-4 p-4 shadow-glass", styles.page)}>
           <textarea
             ref={textareaRef}
             value={body}
@@ -276,7 +282,7 @@ export function JournalEditor({ entry }: Props) {
           />
 
           {menu ? (
-            <div className="absolute left-4 top-4 z-10 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-border/30 bg-panel/80 p-2 shadow-glass backdrop-blur-md">
+            <Panel className="absolute left-4 top-4 z-10 w-[min(360px,calc(100%-2rem))] border-border/15 bg-panel/80 p-2 shadow-glass backdrop-blur-md">
               <div className="px-2 pb-2 pt-1 text-xs text-muted">
                 {menu.type === "slash" ? "Commands" : "Link to an entry"}
               </div>
@@ -335,10 +341,10 @@ export function JournalEditor({ entry }: Props) {
                   ))
                 )}
               </div>
-            </div>
+            </Panel>
           ) : null}
-        </div>
-      </div>
+        </InsetPanel>
+      </Panel>
     </div>
   );
 }

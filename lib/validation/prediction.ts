@@ -35,6 +35,11 @@ const stakeInput = z.preprocess((v) => {
   return v;
 }, z.union([z.string().min(1), z.number()]));
 
+const lineInput = z.preprocess((v) => {
+  if (typeof v === "string") return v.trim().replace(/%$/, "");
+  return v;
+}, z.union([z.string().min(1), z.number()]));
+
 export const predictionCreateSchema = z.object({
   question: z.string().trim().min(1).max(500),
   confidence: confidenceInput.transform((v, ctx) => {
@@ -53,6 +58,25 @@ export const predictionCreateSchema = z.object({
     }
     return normalized;
   }),
+  reference_line: lineInput
+    .optional()
+    .transform((v, ctx) => {
+      if (v === undefined || v === null || v === "") return 0.5;
+      const n = typeof v === "number" ? v : Number(v);
+      if (!Number.isFinite(n)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid line." });
+        return z.NEVER;
+      }
+      const normalized = n > 1 ? n / 100 : n;
+      if (normalized <= 0 || normalized >= 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Line must be between 0 and 1.",
+        });
+        return z.NEVER;
+      }
+      return normalized;
+    }),
   resolve_by: resolveByInput,
 });
 
@@ -97,4 +121,71 @@ export const predictionBetUpsertSchema = z.object({
 
 export const predictionBetDeleteSchema = z.object({
   prediction_id: z.string().uuid(),
+});
+
+export const predictionForecastUpdateSchema = z.object({
+  prediction_id: z.string().uuid(),
+  probability: confidenceInput.transform((v, ctx) => {
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid probability." });
+      return z.NEVER;
+    }
+    const normalized = n > 1 ? n / 100 : n;
+    if (normalized < 0 || normalized > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Probability must be 0–1 or 0–100.",
+      });
+      return z.NEVER;
+    }
+    return normalized;
+  }),
+  note: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+export const predictionLineUpdateSchema = z.object({
+  prediction_id: z.string().uuid(),
+  reference_line: lineInput.transform((v, ctx) => {
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid line." });
+      return z.NEVER;
+    }
+    const normalized = n > 1 ? n / 100 : n;
+    if (normalized <= 0 || normalized >= 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Line must be between 0 and 1.",
+      });
+      return z.NEVER;
+    }
+    return normalized;
+  }),
+});
+
+export const paperPositionOpenSchema = z.object({
+  prediction_id: z.string().uuid(),
+  side: z.enum(["yes", "no"]),
+  stake: stakeInput.transform((v, ctx) => {
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid stake." });
+      return z.NEVER;
+    }
+    if (n <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Stake must be > 0." });
+      return z.NEVER;
+    }
+    if (n > 1_000_000_000) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Stake too large." });
+      return z.NEVER;
+    }
+    return Math.round(n * 100) / 100;
+  }),
 });
