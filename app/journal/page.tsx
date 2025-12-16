@@ -1,13 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { list } from "@/db/journal_entries";
-import { Button } from "@/components/ui/button";
-import { createJournalEntryAction } from "@/app/journal/actions";
 import { ensureUser } from "@/services/auth/ensure-user";
-import { JournalEntriesList } from "@/app/journal/_components/journal-entries-list";
-import { JournalEntryForm } from "@/app/journal/_components/journal-entry-form";
+import { createBlankJournalEntryAction } from "@/app/journal/actions";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -20,40 +17,23 @@ export default async function JournalIndexPage({
   if (!userId) redirect("/sign-in");
 
   const ensured = await ensureUser();
-  const entries = await list(ensured.user_id, { limit: 50 });
+  const entries = await list(ensured.user_id, { limit: 1 });
+
+  const latest = entries[0];
+  if (latest) redirect(`/journal/${latest.id}`);
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">Journal</h1>
-          <p className="mt-1 text-sm text-muted">
-            CRUD-only. No tags, beliefs, or predictions yet.
-          </p>
-        </div>
-        <Link href="/">
-          <Button variant="secondary" size="sm">
-            Home
-          </Button>
-        </Link>
-      </header>
-
+    <section className="glass-panel rounded-2xl p-6">
       {searchParams?.error === "validation" ? (
         <div className="rounded-xl border border-accent/30 bg-panel/60 p-3 text-sm text-accent">
           Invalid input. Please try again.
         </div>
       ) : null}
-
-      <JournalEntryForm
-        title="New entry"
-        submitLabel="Create"
-        action={createJournalEntryAction}
-      />
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted">Last 50</h2>
-        <JournalEntriesList entries={entries} />
-      </section>
-    </main>
+      <div className="text-sm font-medium">No entries yet</div>
+      <div className="mt-1 text-sm text-muted">Create your first entry to start building a library.</div>
+      <form action={createBlankJournalEntryAction} className="mt-4">
+        <Button type="submit">Create first entry</Button>
+      </form>
+    </section>
   );
 }

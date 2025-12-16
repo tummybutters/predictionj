@@ -1,0 +1,28 @@
+.enter {
+  animation: enter 220ms ease-out;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page {
+  background-image:
+    radial-gradient(1000px 500px at 20% -10%, rgba(242, 140, 109, 0.08), transparent 60%),
+    radial-gradient(900px 600px at 80% 0%, rgba(255, 255, 255, 0.05), transparent 55%),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px,
+      transparent 28px
+    );
+}
+

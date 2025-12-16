@@ -10,6 +10,7 @@ import {
   journalEntryDeleteSchema,
   journalEntryUpdateSchema,
 } from "@/lib/validation/journal";
+import { deriveTitle } from "@/app/journal/_components/journal-utils";
 
 function getString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -29,7 +30,9 @@ export async function createJournalEntryAction(formData: FormData) {
     redirect("/journal?error=validation");
   }
 
-  const row = await create(ensured.user_id, parsed.data);
+  const body = parsed.data.body ?? "";
+  const title = parsed.data.title ?? deriveTitle(body);
+  const row = await create(ensured.user_id, { title, body });
 
   revalidatePath("/journal");
   redirect(`/journal/${row.id}`);
@@ -48,9 +51,12 @@ export async function updateJournalEntryAction(formData: FormData) {
     redirect("/journal?error=validation");
   }
 
+  const body = parsed.data.body ?? "";
+  const title = parsed.data.title ?? deriveTitle(body);
+
   const updated = await update(ensured.user_id, parsed.data.id, {
-    title: parsed.data.title,
-    body: parsed.data.body,
+    title,
+    body,
   });
 
   if (!updated) redirect("/journal");
@@ -77,3 +83,29 @@ export async function deleteJournalEntryAction(formData: FormData) {
   redirect("/journal");
 }
 
+export async function createBlankJournalEntryAction() {
+  const ensured = await ensureUser();
+  const row = await create(ensured.user_id, { title: null, body: "" });
+  revalidatePath("/journal");
+  redirect(`/journal/${row.id}`);
+}
+
+export async function saveJournalEntryDraftAction(input: { id: string; body: string }): Promise<{
+  updated_at: string;
+  title: string | null;
+}> {
+  const ensured = await ensureUser();
+
+  const parsed = journalEntryUpdateSchema.safeParse({ id: input.id, body: input.body });
+  if (!parsed.success) throw new Error("Invalid input.");
+
+  const body = parsed.data.body ?? "";
+  const title = deriveTitle(body);
+
+  const updated = await update(ensured.user_id, parsed.data.id, { title, body });
+  if (!updated) throw new Error("Not found.");
+
+  revalidatePath("/journal");
+  revalidatePath(`/journal/${parsed.data.id}`);
+  return { updated_at: updated.updated_at, title: updated.title };
+}
