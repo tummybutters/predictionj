@@ -30,6 +30,11 @@ const confidenceInput = z.preprocess((v) => {
   return v;
 }, z.union([z.string().min(1), z.number()]));
 
+const stakeInput = z.preprocess((v) => {
+  if (typeof v === "string") return v.trim().replace(/,/g, "");
+  return v;
+}, z.union([z.string().min(1), z.number()]));
+
 export const predictionCreateSchema = z.object({
   question: z.string().trim().min(1).max(500),
   confidence: confidenceInput.transform((v, ctx) => {
@@ -68,4 +73,28 @@ export const predictionResolveSchema = z.object({
     .max(2000)
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+export const predictionBetUpsertSchema = z.object({
+  prediction_id: z.string().uuid(),
+  stake: stakeInput.transform((v, ctx) => {
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid stake." });
+      return z.NEVER;
+    }
+    if (n <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Stake must be > 0." });
+      return z.NEVER;
+    }
+    if (n > 1_000_000_000) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Stake too large." });
+      return z.NEVER;
+    }
+    return Math.round(n * 100) / 100;
+  }),
+});
+
+export const predictionBetDeleteSchema = z.object({
+  prediction_id: z.string().uuid(),
 });

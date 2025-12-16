@@ -3,12 +3,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { get } from "@/db/predictions";
+import { ensure as ensureBankroll } from "@/db/bankroll";
+import { getByPredictionId } from "@/db/prediction_bets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ensureUser } from "@/services/auth/ensure-user";
 import { PredictionForm } from "@/app/predictions/_components/prediction-form";
+import { PredictionBetControls } from "@/app/predictions/_components/prediction-bet-controls";
 import {
   deletePredictionAction,
   resolvePredictionAction,
@@ -27,6 +30,8 @@ export default async function PredictionDetailPage({
 
   const ensured = await ensureUser();
   const prediction = await get(ensured.user_id, params.prediction_id);
+  const bankroll = await ensureBankroll(ensured.user_id);
+  const bet = await getByPredictionId(ensured.user_id, params.prediction_id);
 
   if (!prediction) notFound();
 
@@ -76,6 +81,47 @@ export default async function PredictionDetailPage({
                 {prediction.resolution_note}
               </div>
             </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="text-sm font-medium">Bet</div>
+          <div className="mt-1 text-sm text-muted">
+            Credits: <span className="font-medium">{Math.round(bankroll.balance)}</span>{" "}
+            · Busts: <span className="font-medium">{bankroll.bust_count}</span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {bet ? (
+            <div className="rounded-xl border border-border/25 bg-panel/40 p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-muted">
+                  Stake: <span className="font-medium text-text">{Math.round(bet.stake)}</span>{" "}
+                  · Bet @{" "}
+                  <span className="font-medium text-text">
+                    {Math.round(bet.confidence * 100)}%
+                  </span>
+                </div>
+                {bet.settled_at && bet.pnl !== null ? (
+                  <div className={bet.pnl >= 0 ? "text-accent" : "text-red-300"}>
+                    PnL: {bet.pnl >= 0 ? "+" : ""}
+                    {Math.round(bet.pnl)}
+                  </div>
+                ) : (
+                  <div className="text-muted">Open</div>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {!isResolved ? (
+            <PredictionBetControls
+              predictionId={prediction.id}
+              confidence={Number.isFinite(confidence) ? confidence : 0.5}
+              initialStake={bet?.settled_at ? null : bet?.stake ?? null}
+            />
           ) : null}
         </CardContent>
       </Card>
