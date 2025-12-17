@@ -8,6 +8,7 @@ import { InsetPanel, Panel } from "@/components/ui/panel";
 import { PolymarketEventCarousel } from "@/components/polymarket/event-carousel";
 import styles from "@/components/polymarket/event-search.module.css";
 import Link from "next/link";
+import { cn } from "@/lib/cn";
 
 type GammaEventLite = {
   id: string;
@@ -84,13 +85,24 @@ function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export function PolymarketEventSearchBanner() {
+export function PolymarketEventSearchBanner({
+  density = "default",
+  defaultCarouselOpen,
+  storageKey = "pj_polymarket_carousel_open",
+}: {
+  density?: "default" | "compact";
+  defaultCarouselOpen?: boolean;
+  storageKey?: string;
+}) {
+  const compact = density === "compact";
   const [query, setQuery] = React.useState("");
   const [trending, setTrending] = React.useState<GammaEventLite[]>([]);
   const [results, setResults] = React.useState<GammaEventLite[]>([]);
   const [searchStatus, setSearchStatus] = React.useState<"idle" | "loading" | "error">("idle");
   const [trendingStatus, setTrendingStatus] = React.useState<"idle" | "loading" | "error">("idle");
-  const [carouselOpen, setCarouselOpen] = React.useState(true);
+  const [carouselOpen, setCarouselOpen] = React.useState(
+    defaultCarouselOpen ?? !compact,
+  );
   const [resultsOpen, setResultsOpen] = React.useState(false);
 
   const latestSearchRequestId = React.useRef(0);
@@ -100,20 +112,21 @@ export function PolymarketEventSearchBanner() {
 
   React.useEffect(() => {
     try {
-      const raw = localStorage.getItem("pj_polymarket_carousel_open");
+      const raw = localStorage.getItem(storageKey);
       if (raw === "0") setCarouselOpen(false);
+      if (raw === "1") setCarouselOpen(true);
     } catch {
       // Ignore.
     }
-  }, []);
+  }, [storageKey]);
 
   React.useEffect(() => {
     try {
-      localStorage.setItem("pj_polymarket_carousel_open", carouselOpen ? "1" : "0");
+      localStorage.setItem(storageKey, carouselOpen ? "1" : "0");
     } catch {
       // Ignore.
     }
-  }, [carouselOpen]);
+  }, [carouselOpen, storageKey]);
 
   React.useEffect(() => {
     const requestId = ++latestTrendingRequestId.current;
@@ -191,14 +204,17 @@ export function PolymarketEventSearchBanner() {
   const hasQuery = query.trim().length > 0;
 
   return (
-    <Panel ref={rootRef} className="rounded-3xl p-4">
+    <Panel ref={rootRef} className={cn(compact ? "rounded-2xl p-3" : "rounded-3xl p-4")}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs text-muted">Trending</div>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 text-muted hover:text-text"
+          className={cn(
+            "p-0 text-muted hover:text-text",
+            compact ? "h-7 w-7" : "h-8 w-8",
+          )}
           onClick={() => setCarouselOpen((v) => !v)}
           aria-label={carouselOpen ? "Hide trending carousel" : "Show trending carousel"}
           title={carouselOpen ? "Hide trending carousel" : "Show trending carousel"}
@@ -212,7 +228,7 @@ export function PolymarketEventSearchBanner() {
       </div>
 
       {carouselOpen ? (
-        <InsetPanel className="mt-3 rounded-3xl p-2">
+        <InsetPanel className={cn(compact ? "mt-2 rounded-2xl p-2" : "mt-3 rounded-3xl p-2")}>
           {trendingStatus === "error" ? (
             <EmptyState className="rounded-2xl p-4">
               Couldn’t load Polymarket events right now.
@@ -223,12 +239,12 @@ export function PolymarketEventSearchBanner() {
         </InsetPanel>
       ) : null}
 
-      <div className="mt-3">
+      <div className={cn(compact ? "mt-2" : "mt-3")}>
         <div className="relative">
           <form onSubmit={handleSubmit} className={styles.container} role="search">
             <input
               ref={inputRef}
-              className={styles.input}
+              className={cn(styles.input, compact && styles.inputCompact)}
               type="text"
               placeholder="Search Polymarket events…"
               value={query}
@@ -248,13 +264,25 @@ export function PolymarketEventSearchBanner() {
               spellCheck={false}
             />
 
-            <button type="submit" className={styles.submit} aria-label="Search" title="Search">
-              <SearchIcon className="h-[18px] w-[18px]" />
+            <button
+              type="submit"
+              className={cn(styles.submit, compact && styles.submitCompact)}
+              aria-label="Search"
+              title="Search"
+            >
+              <SearchIcon className={cn(compact ? "h-4 w-4" : "h-[18px] w-[18px]")} />
             </button>
           </form>
 
           {hasQuery && resultsOpen ? (
-            <Panel className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 rounded-3xl border-border/15 bg-panel/95 p-2 shadow-glass backdrop-blur-md">
+            <Panel
+              className={cn(
+                "absolute left-0 right-0 z-50 border-border/15 bg-panel/95 shadow-glass backdrop-blur-md",
+                compact
+                  ? "top-[calc(100%+8px)] rounded-2xl p-1.5"
+                  : "top-[calc(100%+10px)] rounded-3xl p-2",
+              )}
+            >
               <div className="flex items-center justify-between gap-2 px-2 py-1 text-xs text-muted">
                 <span>Top results</span>
                 {searchStatus === "loading" ? <span aria-live="polite">Loading…</span> : null}
@@ -269,30 +297,49 @@ export function PolymarketEventSearchBanner() {
               ) : null}
 
               {results.length > 0 ? (
-                <ol className="max-h-[340px] space-y-2 overflow-auto p-1">
+                <ol
+                  className={cn(
+                    "overflow-auto p-1",
+                    compact ? "max-h-[280px] space-y-1.5" : "max-h-[340px] space-y-2",
+                  )}
+                >
                   {results.map((e) => {
                     const createHref = `/predictions?prefill=${encodeURIComponent(e.title)}`;
 
                     return (
                       <li key={e.id}>
-                        <InsetPanel className="flex items-center justify-between gap-3 rounded-2xl border-border/15 bg-panel/60 p-3 transition-colors duration-200 ease-out hover:bg-panel/70">
+                        <InsetPanel
+                          className={cn(
+                            "flex items-center justify-between gap-3 rounded-2xl border-border/15 bg-panel/60 transition-colors duration-200 ease-out hover:bg-panel/70",
+                            compact ? "p-2" : "p-3",
+                          )}
+                        >
                           <Link
                             href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
                             className="min-w-0 flex-1"
                             onClick={() => setResultsOpen(false)}
                           >
-                            <div className="line-clamp-1 text-sm font-medium hover:underline">
+                            <div
+                              className={cn(
+                                "line-clamp-1 font-medium hover:underline",
+                                compact ? "text-[13px]" : "text-sm",
+                              )}
+                            >
                               {e.title}
                             </div>
                           </Link>
                           <div className="flex shrink-0 items-center gap-2">
                             <Link href={`/polymarket/events/${encodeURIComponent(e.slug)}`}>
-                              <Button variant="secondary" size="sm" className="h-8 px-2">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className={cn(compact ? "h-7 px-2" : "h-8 px-2")}
+                              >
                                 Details
                               </Button>
                             </Link>
                             <Link href={createHref} aria-label="Make prediction">
-                              <Button size="sm" className="h-8 w-8 p-0">
+                              <Button size="sm" className={cn(compact ? "h-7 w-7 p-0" : "h-8 w-8 p-0")}>
                                 +
                               </Button>
                             </Link>

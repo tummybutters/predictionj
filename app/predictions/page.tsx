@@ -55,8 +55,12 @@ export default async function PredictionsIndexPage({
   const positionedPredictions = new Set(openPositions.map((p) => p.prediction_id)).size;
 
   return (
-    <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
-      <PolymarketEventSearchBanner />
+    <main className="mx-auto max-w-5xl space-y-6 px-6 py-8">
+      <PolymarketEventSearchBanner
+        density="compact"
+        defaultCarouselOpen={false}
+        storageKey="pj_polymarket_carousel_open_predictions"
+      />
 
       <PageHeader
         title="Predictions"
@@ -70,31 +74,32 @@ export default async function PredictionsIndexPage({
         }
       />
 
-      <Panel className="p-5">
+      <Panel className="p-4">
         <Section
           title="Paper portfolio"
           hint="Fixed-odds paper trades against your own reference line (no live pricing)."
+          density="compact"
         >
           <div className="grid gap-3 sm:grid-cols-4">
-            <InsetPanel className="p-3">
+            <InsetPanel className="rounded-2xl p-2.5">
               <div className="text-xs text-muted">Balance</div>
-              <div className="mt-1 text-lg font-semibold">
+              <div className="mt-0.5 text-base font-semibold">
                 {Math.round(account.balance)}
               </div>
             </InsetPanel>
-            <InsetPanel className="p-3">
+            <InsetPanel className="rounded-2xl p-2.5">
               <div className="text-xs text-muted">At risk</div>
-              <div className="mt-1 text-lg font-semibold">{Math.round(exposure)}</div>
+              <div className="mt-0.5 text-base font-semibold">{Math.round(exposure)}</div>
             </InsetPanel>
-            <InsetPanel className="p-3">
+            <InsetPanel className="rounded-2xl p-2.5">
               <div className="text-xs text-muted">Open positions</div>
-              <div className="mt-1 text-lg font-semibold">
+              <div className="mt-0.5 text-base font-semibold">
                 {openPositions.length}
               </div>
             </InsetPanel>
-            <InsetPanel className="p-3">
+            <InsetPanel className="rounded-2xl p-2.5">
               <div className="text-xs text-muted">Contracts w/ position</div>
-              <div className="mt-1 text-lg font-semibold">{positionedPredictions}</div>
+              <div className="mt-0.5 text-base font-semibold">{positionedPredictions}</div>
             </InsetPanel>
           </div>
         </Section>
@@ -120,7 +125,7 @@ export default async function PredictionsIndexPage({
         }
       />
 
-      <Section title="Open">
+      <Section title="Open" density="compact">
         <PredictionsList
           predictions={predictions}
           positionsByPredictionId={positionsByPredictionId}

@@ -26,12 +26,12 @@ export function PredictionForm({
   defaultValues,
 }: Props) {
   return (
-    <Panel className="p-5">
+    <Panel className="p-4">
       <div className="text-sm font-semibold tracking-[-0.01em] text-text/80">
         {title}
       </div>
-      <div className="mt-4">
-        <form action={action} className="space-y-4">
+      <div className="mt-3">
+        <form action={action} className="space-y-3">
           {defaultValues?.id ? (
             <input type="hidden" name="id" value={defaultValues.id} />
           ) : null}
@@ -45,6 +45,8 @@ export function PredictionForm({
               disabled={disabled}
               placeholder="Will X happen by Y?"
               defaultValue={defaultValues?.question ?? ""}
+              rows={3}
+              className="min-h-[72px]"
             />
           </div>
 

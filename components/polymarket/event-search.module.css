@@ -24,6 +24,13 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+.inputCompact {
+  padding: 0.55rem 0.9rem;
+  padding-right: 42px;
+  font-size: 13px;
+  line-height: 16px;
+}
+
 .input::placeholder {
   color: rgba(var(--muted), 0.85);
 }
@@ -54,6 +61,12 @@
   border: 0;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.submitCompact {
+  right: 0.3rem;
+  width: 32px;
+  height: 32px;
 }
 
 .submit:hover {
