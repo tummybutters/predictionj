@@ -2,7 +2,6 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { SignUpButton } from "@clerk/nextjs";
-import Link from "next/link";
 
 import { cn } from "@/lib/cn";
 
@@ -173,12 +172,12 @@ export function LandingHomeSections() {
                 <PrimaryCtaButton>Start Tracking — free</PrimaryCtaButton>
               </button>
             </SignUpButton>
-            <Link
-              href="/pricing"
+            <a
+              href="#pricing"
               className="mt-2 text-sm font-semibold text-black/55 underline decoration-black/20 underline-offset-4 transition-colors hover:text-black/70 sm:mt-3"
             >
               See pricing
-            </Link>
+            </a>
           </div>
         </Reveal>
 

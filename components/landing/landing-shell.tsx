@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { cn } from "@/lib/cn";
 
 type LandingShellProps = {
@@ -56,13 +54,13 @@ export function LandingShell({ active, children }: LandingShellProps) {
     <div className="relative isolate min-h-screen overflow-hidden bg-[#f7f1e9] text-black">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(900px_520px_at_25%_0%,rgba(255,255,255,0.75)_0%,transparent_55%),radial-gradient(880px_560px_at_80%_-10%,rgba(255,165,120,0.18)_0%,transparent_60%)]" />
 
-      <header className="absolute left-0 right-0 top-8 z-20 flex items-start justify-center px-6">
+      <header className="fixed left-0 right-0 top-8 z-50 flex items-start justify-center px-6">
         <nav
           aria-label="Primary"
           className="inline-flex items-center gap-1 rounded-full border border-white/45 bg-white/18 p-1.5 shadow-[0_24px_85px_rgba(0,0,0,0.16)] backdrop-blur-xl"
         >
-          <Link
-            href="/pricing"
+          <a
+            href="#pricing"
             aria-current={active === "pricing" ? "page" : undefined}
             className={cn(
               navItemBase,
@@ -72,9 +70,9 @@ export function LandingShell({ active, children }: LandingShellProps) {
             )}
           >
             Pricing
-          </Link>
-          <Link
-            href="/"
+          </a>
+          <a
+            href="#top"
             aria-current={active === "home" ? "page" : undefined}
             className={cn(
               navItemBase,
@@ -84,32 +82,32 @@ export function LandingShell({ active, children }: LandingShellProps) {
             )}
           >
             Home
-          </Link>
-          <Link
-            href="/"
+          </a>
+          <a
+            href="#top"
             aria-label="Prediction Journal"
             className="rounded-full px-1 transition-transform duration-200 ease-out active:translate-y-[1px]"
           >
             <LogoMark />
-          </Link>
-          <Link
-            href="/pricing#contact"
+          </a>
+          <a
+            href="#contact"
             className={cn(
               navItemBase,
               "text-black/70 hover:bg-white/25 hover:text-black",
             )}
           >
             Contact us
-          </Link>
-          <Link
-            href="/pricing#faq"
+          </a>
+          <a
+            href="#faq"
             className={cn(
               navItemBase,
               "text-black/70 hover:bg-white/25 hover:text-black",
             )}
           >
             FAQ
-          </Link>
+          </a>
         </nav>
       </header>
 

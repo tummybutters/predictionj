@@ -1,8 +1,5 @@
-import { LandingPricing } from "@/components/landing/landing-pricing";
-
-export const dynamic = "force-dynamic";
+import { permanentRedirect } from "next/navigation";
 
 export default function PricingPage() {
-  return <LandingPricing />;
+  permanentRedirect("/#pricing");
 }
-

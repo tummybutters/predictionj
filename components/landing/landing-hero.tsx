@@ -1,9 +1,9 @@
-import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 
 import { LandingShell } from "@/components/landing/landing-shell";
 import { LandingHomeSections } from "@/components/landing/landing-home-sections";
+import { LandingPricingSections } from "@/components/landing/landing-pricing";
 
 function PrimaryCtaButton({ children }: { children: React.ReactNode }) {
   return (
@@ -44,7 +44,7 @@ function FeatureChip({ children }: { children: React.ReactNode }) {
 export function LandingHero() {
   return (
     <LandingShell active="home">
-      <main className="flex flex-1 flex-col">
+      <main id="top" className="flex flex-1 flex-col">
         <section className="relative isolate overflow-hidden">
           <div className="absolute inset-0 -z-10">
             <Image
@@ -108,12 +108,12 @@ export function LandingHero() {
                 </div>
 
                 <div className="mt-10 text-center">
-                  <Link
-                    href="/pricing"
+                  <a
+                    href="#pricing"
                     className="text-sm font-semibold text-black/55 underline decoration-black/20 underline-offset-4 transition-colors hover:text-black/70"
                   >
                     View pricing
-                  </Link>
+                  </a>
                 </div>
               </div>
             </div>
@@ -123,6 +123,9 @@ export function LandingHero() {
         <section className="bg-[#f7f1e9]">
           <div className="mx-auto max-w-6xl px-6 py-24">
             <LandingHomeSections />
+            <div className="mt-28">
+              <LandingPricingSections />
+            </div>
           </div>
         </section>
       </main>
