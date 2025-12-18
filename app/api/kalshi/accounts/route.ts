@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getKalshiAccount, saveKalshiAccount, deleteKalshiAccount } from "@/services/kalshi/accounts";
+import { createIfMissing } from "@/db/users";
 
 export async function GET() {
     const { userId } = await auth();
@@ -9,7 +10,8 @@ export async function GET() {
     }
 
     try {
-        const account = await getKalshiAccount(userId);
+        const { id: internalUserId } = await createIfMissing(userId);
+        const account = await getKalshiAccount(internalUserId);
         return NextResponse.json({
             connected: !!account,
             key_id: account?.key_id,
@@ -27,6 +29,7 @@ export async function POST(req: Request) {
     }
 
     try {
+        const { id: internalUserId } = await createIfMissing(userId);
         const body = await req.json();
         const { key_id, rsa_private_key } = body;
 
@@ -36,7 +39,7 @@ export async function POST(req: Request) {
         }
 
         const account = await saveKalshiAccount({
-            user_id: userId,
+            user_id: internalUserId,
             key_id,
             rsa_private_key,
         });
@@ -55,7 +58,8 @@ export async function DELETE() {
     }
 
     try {
-        await deleteKalshiAccount(userId);
+        const { id: internalUserId } = await createIfMissing(userId);
+        await deleteKalshiAccount(internalUserId);
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error("Failed to delete kalshi account:", err);

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getPolymarketAccount, savePolymarketAccount, deletePolymarketAccount } from "@/services/polymarket/accounts";
+import { createIfMissing } from "@/db/users";
 
 export async function GET() {
     const { userId } = await auth();
@@ -9,7 +10,8 @@ export async function GET() {
     }
 
     try {
-        const account = await getPolymarketAccount(userId);
+        const { id: internalUserId } = await createIfMissing(userId);
+        const account = await getPolymarketAccount(internalUserId);
         return NextResponse.json({
             connected: !!account,
             poly_address: account?.poly_address,
@@ -29,6 +31,7 @@ export async function POST(req: Request) {
     }
 
     try {
+        const { id: internalUserId } = await createIfMissing(userId);
         const body = await req.json();
         const { poly_address, api_key, api_secret, api_passphrase, proxy_address, signature_type } = body;
 
@@ -38,7 +41,7 @@ export async function POST(req: Request) {
         }
 
         const account = await savePolymarketAccount({
-            user_id: userId,
+            user_id: internalUserId,
             poly_address,
             api_key,
             api_secret,
@@ -61,7 +64,8 @@ export async function DELETE() {
     }
 
     try {
-        await deletePolymarketAccount(userId);
+        const { id: internalUserId } = await createIfMissing(userId);
+        await deletePolymarketAccount(internalUserId);
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error("Failed to delete polymarket account:", err);
