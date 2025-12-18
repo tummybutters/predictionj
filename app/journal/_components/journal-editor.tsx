@@ -2,7 +2,6 @@
 
 import * as React from "react";
 
-import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";

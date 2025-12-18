@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function ConnectKalshiAccount() {
     const [loading, setLoading] = React.useState(false);
-    const [account, setAccount] = React.useState<any>(null);
+    const [account, setAccount] = React.useState<{ connected: boolean; key_id: string } | null>(null);
     const [error, setError] = React.useState<string | null>(null);
 
     // Form states
@@ -53,8 +54,8 @@ export function ConnectKalshiAccount() {
             }
 
             await fetchAccount();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to connect account");
         } finally {
             setLoading(false);
         }
@@ -92,7 +93,7 @@ export function ConnectKalshiAccount() {
     return (
         <Panel className="p-6">
             <div className="flex items-center gap-3 mb-4">
-                <img src="https://kalshi.com/favicon.ico" alt="Kalshi" className="h-6 w-6" />
+                <Image src="https://kalshi.com/favicon.ico" alt="Kalshi" width={24} height={24} className="h-6 w-6" />
                 <h3 className="text-lg font-semibold text-text">Connect Kalshi Account</h3>
             </div>
             <p className="text-sm text-muted mb-6">

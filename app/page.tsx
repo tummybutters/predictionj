@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getDashboard } from "@/services/dashboard/get-dashboard";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
 import { LandingHero } from "@/components/landing/landing-hero";
-import { OnboardingCheck } from "@/components/app/onboarding-check";
+
 import { PageHeader } from "@/components/app/page-header";
 import { Section } from "@/components/app/section";
 import { Panel } from "@/components/ui/panel";

@@ -6,32 +6,7 @@ import { LandingHomeSections } from "@/components/landing/landing-home-sections"
 import { LandingPricingSections } from "@/components/landing/landing-pricing";
 import { AnimatedButton } from "@/components/ui/animated-button";
 
-function PrimaryCtaButton({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="group relative inline-flex">
-      <span className="absolute -inset-1 rounded-full bg-white/40 blur-xl transition-opacity duration-350 ease-spring group-hover:opacity-60" />
-      <span className="relative inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-black/92 to-black px-6 text-[15px] font-semibold text-white shadow-[0_22px_70px_rgba(0,0,0,0.32)] transition-[transform,box-shadow,filter] duration-350 ease-spring hover:-translate-y-[1px] hover:shadow-[0_28px_85px_rgba(0,0,0,0.34)] active:translate-y-[1px] active:shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
-        <span className="absolute inset-0 rounded-full bg-[radial-gradient(120%_120%_at_50%_0%,rgba(255,255,255,0.22)_0%,transparent_60%)]" />
-        <span className="relative">{children}</span>
-        <svg
-          className="relative size-4 opacity-90 transition-transform duration-350 ease-spring group-hover:translate-x-[1px]"
-          viewBox="0 0 20 20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            d="M8 5l5 5-5 5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-    </span>
-  );
-}
+
 
 function FeatureChip({ children }: { children: React.ReactNode }) {
   return (

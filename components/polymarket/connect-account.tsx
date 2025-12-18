@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Panel, InsetPanel } from "@/components/ui/panel";
+import { Panel } from "@/components/ui/panel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ConnectPolymarketAccount() {
     const [loading, setLoading] = React.useState(false);
-    const [account, setAccount] = React.useState<any>(null);
+    const [account, setAccount] = React.useState<{ connected: boolean; poly_address: string } | null>(null);
     const [error, setError] = React.useState<string | null>(null);
 
     // Form states
@@ -58,8 +58,8 @@ export function ConnectPolymarketAccount() {
             }
 
             await fetchAccount();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to connect account");
         } finally {
             setLoading(false);
         }

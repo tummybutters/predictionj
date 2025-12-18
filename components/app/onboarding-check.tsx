@@ -51,7 +51,7 @@ export function OnboardingCheck() {
                 <div className="flex-1 text-center sm:text-left">
                     <h3 className="text-lg font-semibold text-text leading-tight">Welcome to Prediction Journal!</h3>
                     <p className="mt-1 text-sm text-muted max-w-lg">
-                        You're currently in <strong>Paper Trading mode</strong>. If you want to place real trades, you can connect your Polymarket or Kalshi account at any time in settings.
+                        You&apos;re currently in <strong>Paper Trading mode</strong>. If you want to place real trades, you can connect your Polymarket or Kalshi account at any time in settings.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
