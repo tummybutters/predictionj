@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.31.0",
+    "@polymarket/clob-client": "^5.1.1",
     "@supabase/supabase-js": "^2.57.4",
     "clsx": "^2.1.1",
+    "ethers": "^5.7.2",
     "framer-motion": "^12.23.26",
     "next": "^14.2.0",
     "react": "^18.2.0",

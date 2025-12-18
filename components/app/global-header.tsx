@@ -105,6 +105,16 @@ export function GlobalHeader() {
                     >
                         Assistant
                     </Link>
+                    <Link
+                        href="/settings"
+                        className={cn(
+                            navItemBase,
+                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
+                            pathname?.startsWith("/settings") && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
+                        )}
+                    >
+                        Settings
+                    </Link>
                 </SignedIn>
 
                 {/* SHARED / ACTION LINKS */}
