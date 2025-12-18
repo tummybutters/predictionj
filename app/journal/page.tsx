@@ -1,24 +1,18 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
-import { list } from "@/db/journal_entries";
 import { ensureUser } from "@/services/auth/ensure-user";
+import { listEntries } from "@/services/journal";
 import { createBlankJournalEntryAction } from "@/app/journal/actions";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
-
-export const dynamic = "force-dynamic";
 
 export default async function JournalIndexPage({
   searchParams,
 }: {
   searchParams?: { error?: string };
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
-
   const ensured = await ensureUser();
-  const entries = await list(ensured.user_id, { limit: 1 });
+  const entries = await listEntries(ensured.user_id, { limit: 1 });
 
   const latest = entries[0];
   if (latest) redirect(`/journal/${latest.id}`);

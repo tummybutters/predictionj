@@ -1,4 +1,4 @@
-Production-ready foundation for a modular Next.js 14 App Router codebase.
+Next.js 14 App Router app for a personal prediction + journaling system (Clerk auth, Supabase Postgres).
 
 ## Setup
 
@@ -16,15 +16,15 @@ Open `http://localhost:3000`.
 
 ## Boundaries
 
-- `app/`: routing and UI composition only
-- `components/`: UI components only (no business logic)
-- `db/`: schema + queries only (data access boundary)
-- `services/`: business logic (no direct DB access)
-- `lib/`: pure utilities (no side effects)
+- `app/`: routing, server actions, and UI composition
+- `components/`: reusable UI components (no DB access)
+- `db/`: data access boundary (Supabase queries + row normalization; server-only)
+- `services/`: domain/workflow orchestration on top of `db/` (server-only)
+- `lib/`: small shared utilities
 
 ## Notes
 
 - Clerk is wired via `middleware.ts` and `app/layout.tsx`.
 - Supabase is configured as server-only in `db/supabase/server.ts`.
-
-This repo intentionally contains no product features yet.
+- SQL sources live in `db/schema/` (including RPC helpers used by paper trading workflows).
+- `app/dev/*` routes are intended for local development only and are blocked in production by `middleware.ts`.

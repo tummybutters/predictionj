@@ -37,6 +37,3 @@ export async function createIfMissing(
   return data;
 }
 
-// Optional snake_case aliases for searchability.
-export const get_by_clerk_id = getByClerkId;
-export const create_if_missing = createIfMissing;

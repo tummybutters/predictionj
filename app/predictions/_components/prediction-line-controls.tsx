@@ -65,15 +65,17 @@ export function PredictionLineControls({
           onClick={() =>
             startTransition(async () => {
               setError(null);
-              try {
-                await updatePredictionLine({
-                  prediction_id: predictionId,
-                  reference_line: lineInput,
-                });
-                router.refresh();
-              } catch (e) {
-                setError(e instanceof Error ? e.message : "Failed to update line.");
+              const result = await updatePredictionLine({
+                prediction_id: predictionId,
+                reference_line: lineInput,
+              });
+
+              if (!result.success) {
+                setError(result.message || "Failed to update line.");
+                return;
               }
+
+              router.refresh();
             })
           }
         >

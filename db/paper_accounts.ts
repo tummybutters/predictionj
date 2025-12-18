@@ -12,14 +12,7 @@ export type PaperAccountRow = {
 
 const DEFAULT_STARTING_BALANCE = 1000;
 
-function toNumber(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  }
-  return 0;
-}
+import { toNumber } from "@/db/utils";
 
 function normalizeRow(row: Record<string, unknown>): PaperAccountRow {
   return {

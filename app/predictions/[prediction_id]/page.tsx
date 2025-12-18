@@ -1,12 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import { get } from "@/db/predictions";
-import { ensure as ensurePaperAccount } from "@/db/paper_accounts";
-import { listByPredictionId as listForecasts } from "@/db/prediction_forecasts";
-import { listByPredictionId as listPositions } from "@/db/paper_positions";
-import { listRecent as listPaperLedger } from "@/db/paper_ledger";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Panel, InsetPanel } from "@/components/ui/panel";
@@ -16,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Pill } from "@/components/ui/pill";
 import { Textarea } from "@/components/ui/textarea";
 import { ensureUser } from "@/services/auth/ensure-user";
+import { getPredictionDetailData } from "@/services/predictions";
 import { PredictionForm } from "@/app/predictions/_components/prediction-form";
 import { PaperPositionControls } from "@/app/predictions/_components/paper-position-controls";
 import { PredictionForecastControls } from "@/app/predictions/_components/prediction-forecast-controls";
@@ -25,8 +20,6 @@ import {
   resolvePredictionAction,
   updatePredictionAction,
 } from "@/app/predictions/actions";
-
-export const dynamic = "force-dynamic";
 
 function MetaPill({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "neutral" | "positive" | "danger" }) {
   return (
@@ -42,18 +35,11 @@ export default async function PredictionDetailPage({
 }: {
   params: { prediction_id: string };
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
-
   const ensured = await ensureUser();
-  const prediction = await get(ensured.user_id, params.prediction_id);
+  const data = await getPredictionDetailData(ensured.user_id, params.prediction_id);
+  if (!data) notFound();
 
-  if (!prediction) notFound();
-
-  const account = await ensurePaperAccount(ensured.user_id);
-  const forecasts = await listForecasts(ensured.user_id, prediction.id, 25);
-  const positions = await listPositions(ensured.user_id, prediction.id, 50);
-  const ledger = await listPaperLedger(ensured.user_id, 15);
+  const { prediction, account, forecasts, positions, ledger } = data;
 
   const isResolved = Boolean(prediction.resolved_at || prediction.outcome);
   const confidence = Number(prediction.confidence);

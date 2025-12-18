@@ -1,13 +1,16 @@
 import "server-only";
 
 import { createForecast } from "@/db/prediction_forecasts";
-import { ensure as ensurePaperAccount, updateBalance } from "@/db/paper_accounts";
-import { createEntry as createPaperLedgerEntry } from "@/db/paper_ledger";
+import { ensure as ensurePaperAccount } from "@/db/paper_accounts";
 import {
-  createOpenPosition,
-  settleOpenPositionsForPrediction,
+  listByPredictionId as listPaperPositionsByPredictionId,
+  listOpenByPredictionIds as listOpenPaperPositionsByPredictionIds,
   type PaperPositionRow,
 } from "@/db/paper_positions";
+import {
+  openPaperPositionAtomic,
+  resolvePredictionAndSettlePaperPositionsAtomic,
+} from "@/db/paper_trading";
 import {
   create as createPrediction,
   deleteById as deletePredictionById,
@@ -17,6 +20,8 @@ import {
   type PredictionOutcome,
   type PredictionRow,
 } from "@/db/predictions";
+import { listByPredictionId as listForecastsByPredictionId } from "@/db/prediction_forecasts";
+import { listRecent as listPaperLedger } from "@/db/paper_ledger";
 
 function assertOpenPrediction(prediction: PredictionRow) {
   if (prediction.resolved_at || prediction.outcome) {
@@ -24,24 +29,9 @@ function assertOpenPrediction(prediction: PredictionRow) {
   }
 }
 
-function computeFixedOddsPayout(params: {
-  stake: number;
-  line: number;
-  side: "yes" | "no";
-  outcome: Exclude<PredictionOutcome, "unknown">;
-}): { payout: number; pnl: number } {
-  const stake = params.stake;
-  const line = params.line;
-  const yesPrice = line;
-  const noPrice = 1 - line;
-
-  if (params.side === "yes") {
-    const payout = params.outcome === "true" ? stake / yesPrice : 0;
-    return { payout, pnl: payout - stake };
-  }
-
-  const payout = params.outcome === "false" ? stake / noPrice : 0;
-  return { payout, pnl: payout - stake };
+function nearlyEqual(a: number, b: number): boolean {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+  return Math.abs(a - b) < 1e-10;
 }
 
 export async function listOpen(userId: string, options?: { limit?: number }) {
@@ -88,7 +78,7 @@ export async function updateOpenPrediction(
   if (!existing) throw new Error("Prediction not found.");
   assertOpenPrediction(existing);
 
-  const confidenceChanged = input.confidence !== existing.confidence;
+  const confidenceChanged = !nearlyEqual(input.confidence, existing.confidence);
 
   const updated = await updatePrediction(userId, input.id, {
     claim: input.question,
@@ -122,49 +112,15 @@ export async function resolveAndSettlePaperPositions(
   userId: string,
   input: { id: string; outcome: Exclude<PredictionOutcome, "unknown">; note: string | null },
 ): Promise<PredictionRow> {
-  const existing = await getPrediction(userId, input.id);
-  if (!existing) throw new Error("Prediction not found.");
-  assertOpenPrediction(existing);
-
-  const resolved = await updatePrediction(userId, input.id, {
-    resolved_at: new Date().toISOString(),
-    outcome: input.outcome,
-    resolution_note: input.note,
-  });
-  if (!resolved) throw new Error("Prediction not found.");
-
-  const account = await ensurePaperAccount(userId);
-  let nextBalance = account.balance;
-  const settledPositions = await settleOpenPositionsForPrediction({
+  await resolvePredictionAndSettlePaperPositionsAtomic({
     user_id: userId,
     prediction_id: input.id,
     outcome: input.outcome,
-    compute: (position: PaperPositionRow) =>
-      computeFixedOddsPayout({
-        stake: position.stake,
-        line: position.line,
-        side: position.side,
-        outcome: input.outcome,
-      }),
+    note: input.note,
   });
 
-  for (const p of settledPositions) {
-    const payout = p.payout ?? 0;
-    nextBalance += payout;
-    nextBalance = Math.max(0, Math.round(nextBalance * 100) / 100);
-    await updateBalance(userId, nextBalance);
-    await createPaperLedgerEntry({
-      user_id: userId,
-      prediction_id: input.id,
-      kind: "settle_position",
-      delta: payout,
-      balance_after: nextBalance,
-      memo: `Settled ${p.side.toUpperCase()} @ ${Math.round(p.line * 100)}% (PnL ${Math.round(
-        (p.pnl ?? 0) * 100,
-      ) / 100}).`,
-    });
-  }
-
+  const resolved = await getPrediction(userId, input.id);
+  if (!resolved) throw new Error("Prediction not found.");
   return resolved;
 }
 
@@ -208,32 +164,94 @@ export async function openPaperPositionWorkflow(
   if (!prediction) throw new Error("Prediction not found.");
   assertOpenPrediction(prediction);
 
-  const line = Number(prediction.reference_line);
-  if (!Number.isFinite(line) || line <= 0 || line >= 1) throw new Error("Invalid line.");
-
-  const account = await ensurePaperAccount(userId);
-  if (input.stake > account.balance) {
-    throw new Error(`Insufficient balance. Available: ${Math.floor(account.balance)}.`);
-  }
-
-  const nextBalance = Math.max(0, Math.round((account.balance - input.stake) * 100) / 100);
-  await updateBalance(userId, nextBalance);
-  const position = await createOpenPosition({
+  await ensurePaperAccount(userId);
+  await openPaperPositionAtomic({
     user_id: userId,
     prediction_id: input.prediction_id,
     side: input.side,
     stake: input.stake,
-    line,
   });
+}
 
-  await createPaperLedgerEntry({
-    user_id: userId,
-    prediction_id: input.prediction_id,
-    kind: "open_position",
-    delta: -input.stake,
-    balance_after: nextBalance,
-    memo: `Opened ${position.side.toUpperCase()} @ ${Math.round(line * 100)}% (stake ${Math.round(
-      position.stake,
-    )}).`,
-  });
+export type PositionSummary = {
+  yes_stake: number;
+  no_stake: number;
+  total_stake: number;
+};
+
+export type OpenPredictionsIndexData = {
+  predictions: PredictionRow[];
+  account: { balance: number };
+  positionsByPredictionId: Record<string, PositionSummary>;
+  exposure: number;
+  positionedPredictions: number;
+  openPositionsCount: number;
+};
+
+export async function getOpenPredictionsIndexData(userId: string): Promise<OpenPredictionsIndexData> {
+  const predictions = await listOpenPredictions(userId, { limit: 200 });
+  const account = await ensurePaperAccount(userId);
+
+  const openPositions = await listOpenPaperPositionsByPredictionIds(
+    userId,
+    predictions.map((p) => p.id),
+  );
+
+  const positionsByPredictionId: Record<string, PositionSummary> = {};
+  for (const pos of openPositions) {
+    const curr = positionsByPredictionId[pos.prediction_id] ?? {
+      yes_stake: 0,
+      no_stake: 0,
+      total_stake: 0,
+    };
+    if (pos.side === "yes") curr.yes_stake += pos.stake;
+    else curr.no_stake += pos.stake;
+    curr.total_stake += pos.stake;
+    positionsByPredictionId[pos.prediction_id] = curr;
+  }
+
+  const exposure = openPositions.reduce((sum, p) => sum + p.stake, 0);
+  const positionedPredictions = new Set(openPositions.map((p) => p.prediction_id)).size;
+
+  return {
+    predictions,
+    account: { balance: account.balance },
+    positionsByPredictionId,
+    exposure,
+    positionedPredictions,
+    openPositionsCount: openPositions.length,
+  };
+}
+
+export type PredictionDetailData = {
+  prediction: PredictionRow;
+  account: { balance: number };
+  forecasts: Array<{ id: string; probability: number; note: string | null; created_at: string }>;
+  positions: PaperPositionRow[];
+  ledger: Array<{
+    id: string;
+    kind: string;
+    delta: number;
+    balance_after: number;
+    memo: string | null;
+    created_at: string;
+  }>;
+};
+
+export async function getPredictionDetailData(userId: string, predictionId: string): Promise<PredictionDetailData | null> {
+  const prediction = await getPrediction(userId, predictionId);
+  if (!prediction) return null;
+
+  const account = await ensurePaperAccount(userId);
+  const forecasts = await listForecastsByPredictionId(userId, prediction.id, 25);
+  const positions = await listPaperPositionsByPredictionId(userId, prediction.id, 50);
+  const ledger = await listPaperLedger(userId, 15);
+
+  return {
+    prediction,
+    account: { balance: account.balance },
+    forecasts,
+    positions,
+    ledger,
+  };
 }

@@ -23,6 +23,3 @@ export async function ensureUser(): Promise<EnsuredUser> {
     clerk_user_id: user.clerk_user_id,
   };
 }
-
-// Optional snake_case alias for searchability.
-export const ensure_user = ensureUser;

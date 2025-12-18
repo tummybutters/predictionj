@@ -13,14 +13,10 @@ export type PaperLedgerRow = {
   created_at: string;
 };
 
-function toNumber(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  }
-  return 0;
-}
+import { toNumber } from "@/db/utils";
+
+export const PAPER_LEDGER_COLUMNS =
+  "id, user_id, prediction_id, kind, delta, balance_after, memo, created_at" as const;
 
 function normalizeRow(row: Record<string, unknown>): PaperLedgerRow {
   return {
@@ -55,7 +51,7 @@ export async function createEntry(input: {
       balance_after: input.balance_after,
       memo: input.memo ?? null,
     })
-    .select("id, user_id, prediction_id, kind, delta, balance_after, memo, created_at")
+    .select(PAPER_LEDGER_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -70,7 +66,7 @@ export async function listRecent(
 
   const { data, error } = await supabase
     .from("paper_ledger")
-    .select("id, user_id, prediction_id, kind, delta, balance_after, memo, created_at")
+    .select(PAPER_LEDGER_COLUMNS)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);

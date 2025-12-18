@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { createBlankJournalEntryAction } from "@/app/journal/actions";
-import { derivePreview, getDisplayTitle } from "@/app/journal/_components/journal-utils";
+import { derivePreview, getDisplayTitle } from "@/lib/journal";
 import { PageHeader } from "@/components/app/page-header";
 import { Panel } from "@/components/ui/panel";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -41,6 +41,38 @@ function formatDateCompact(s: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+function parseTs(s: string | undefined): number {
+  if (!s) return 0;
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : 0;
+}
+
+function mergeEntries(prev: EntryLite[], nextFromServer: EntryLite[]): EntryLite[] {
+  if (prev.length === 0) return nextFromServer;
+
+  const prevById = new Map(prev.map((e) => [e.id, e]));
+  const seen = new Set<string>();
+
+  const merged: EntryLite[] = nextFromServer.map((serverRow) => {
+    const local = prevById.get(serverRow.id);
+    seen.add(serverRow.id);
+
+    if (!local) return serverRow;
+
+    // Prefer the newer version by updated_at; keep local fields if it's newer.
+    return parseTs(serverRow.updated_at) >= parseTs(local.updated_at)
+      ? { ...local, ...serverRow }
+      : local;
+  });
+
+  // Keep any locally-present entries the server didn't send (defensive).
+  for (const e of prev) {
+    if (!seen.has(e.id)) merged.push(e);
+  }
+
+  return merged;
+}
+
 export function JournalShell({
   initialEntries,
   children,
@@ -53,6 +85,10 @@ export function JournalShell({
 
   const [entries, setEntries] = React.useState<EntryLite[]>(initialEntries);
   const [query, setQuery] = React.useState("");
+
+  React.useEffect(() => {
+    setEntries((prev) => mergeEntries(prev, initialEntries));
+  }, [initialEntries]);
 
   const updateEntryLocal = React.useCallback((id: string, patch: Partial<EntryLite>) => {
     setEntries((prev) =>
@@ -109,13 +145,13 @@ export function JournalShell({
               </div>
 
               <div className="mt-3 max-h-[min(68vh,720px)] overflow-auto pr-1 no-scrollbar">
-              {filtered.length === 0 ? (
-                <EmptyState className="rounded-2xl p-4">No matches.</EmptyState>
-              ) : (
-                <ol className="space-y-1">
-                  {filtered.map((e) => {
-                    const active = e.id === selectedId;
-                    const title = getDisplayTitle(e);
+                {filtered.length === 0 ? (
+                  <EmptyState className="rounded-2xl p-4">No matches.</EmptyState>
+                ) : (
+                  <ol className="space-y-1">
+                    {filtered.map((e) => {
+                      const active = e.id === selectedId;
+                      const title = getDisplayTitle(e);
                       const preview = derivePreview(e.body);
 
                       return (

@@ -8,7 +8,7 @@ import { Pill } from "@/components/ui/pill";
 import type { JournalEntryRow } from "@/db/journal_entries";
 import { cn } from "@/lib/cn";
 import { deleteJournalEntryAction, saveJournalEntryDraftAction } from "@/app/journal/actions";
-import { derivePreview, deriveTitle, getDisplayTitle } from "@/app/journal/_components/journal-utils";
+import { derivePreview, deriveTitle, getDisplayTitle } from "@/lib/journal";
 import { useJournalEntries } from "@/app/journal/_components/journal-shell";
 import styles from "@/app/journal/_components/journal-editor.module.css";
 

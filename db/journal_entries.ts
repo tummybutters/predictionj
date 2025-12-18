@@ -12,6 +12,9 @@ export type JournalEntryRow = {
   updated_at: string;
 };
 
+export const JOURNAL_ENTRY_COLUMNS =
+  "id, user_id, title, body, entry_at, created_at, updated_at" as const;
+
 export type CreateJournalEntryInput = {
   title?: string | null;
   body: string;
@@ -29,7 +32,7 @@ export async function list(
 
   const { data, error } = await supabase
     .from("journal_entries")
-    .select("id, user_id, title, body, entry_at, created_at, updated_at")
+    .select(JOURNAL_ENTRY_COLUMNS)
     .eq("user_id", userId)
     .order("entry_at", { ascending: false })
     .limit(limit);
@@ -74,7 +77,7 @@ export async function listRecent(
 
   const { data, error } = await supabase
     .from("journal_entries")
-    .select("id, user_id, title, body, entry_at, created_at, updated_at")
+    .select(JOURNAL_ENTRY_COLUMNS)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -91,7 +94,7 @@ export async function get(
 
   const { data, error } = await supabase
     .from("journal_entries")
-    .select("id, user_id, title, body, entry_at, created_at, updated_at")
+    .select(JOURNAL_ENTRY_COLUMNS)
     .eq("user_id", userId)
     .eq("id", journalEntryId)
     .maybeSingle();
@@ -114,7 +117,7 @@ export async function create(
       body: input.body,
       ...(input.entry_at ? { entry_at: input.entry_at } : {}),
     })
-    .select("id, user_id, title, body, entry_at, created_at, updated_at")
+    .select(JOURNAL_ENTRY_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -137,7 +140,7 @@ export async function update(
     })
     .eq("user_id", userId)
     .eq("id", journalEntryId)
-    .select("id, user_id, title, body, entry_at, created_at, updated_at")
+    .select(JOURNAL_ENTRY_COLUMNS)
     .maybeSingle();
 
   if (error) throw error;

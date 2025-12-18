@@ -137,13 +137,19 @@ export function PaperPositionControls({
           onClick={() =>
             startTransition(async () => {
               setError(null);
-              try {
-                await openPaperPosition({ prediction_id: predictionId, side, stake: stakeInput });
-                setStake("");
-                router.refresh();
-              } catch (e) {
-                setError(e instanceof Error ? e.message : "Failed to open position.");
+              const result = await openPaperPosition({
+                prediction_id: predictionId,
+                side,
+                stake: stakeInput,
+              });
+
+              if (!result.success) {
+                setError(result.message || "Failed to open position.");
+                return;
               }
+
+              setStake("");
+              router.refresh();
             })
           }
         >

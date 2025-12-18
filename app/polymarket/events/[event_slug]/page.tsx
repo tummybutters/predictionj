@@ -1,6 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { getEventBySlug } from "@/services/polymarket/gamma";
 import { Button } from "@/components/ui/button";
@@ -9,8 +7,6 @@ import { Section } from "@/components/app/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
-
-export const dynamic = "force-dynamic";
 
 function toDateInputValue(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -43,9 +39,6 @@ export default async function PolymarketEventPage({
 }: {
   params: { event_slug: string };
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
-
   const event = await getEventBySlug(params.event_slug);
   const resolveBy = toDateInputValue(event.endDate);
 

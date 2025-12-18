@@ -1,17 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { getDashboard } from "@/services/dashboard/get-dashboard";
 import { QuickCapture } from "@/components/home/quick-capture";
-import { MarketLinksCard } from "@/components/home/market-links";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { PageHeader } from "@/components/app/page-header";
 import { Section } from "@/components/app/section";
 import { Panel } from "@/components/ui/panel";
-
-export const dynamic = "force-dynamic";
 
 function formatDateTime(s: string): string {
   const d = new Date(s);
@@ -31,34 +27,10 @@ export default async function HomePage() {
       <PageHeader
         title="Dashboard"
         subtitle="Read-only. Computed from your existing data."
-        actions={
-          <>
-            <Link href="/journal">
-              <Button variant="secondary" size="sm">
-                Journal
-              </Button>
-            </Link>
-            <Link href="/predictions">
-              <Button variant="secondary" size="sm">
-                Predictions
-              </Button>
-            </Link>
-            <Link href="/ai">
-              <Button variant="secondary" size="sm">
-                AI
-              </Button>
-            </Link>
-          </>
-        }
       />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex justify-end sm:order-2">
-          <QuickCapture />
-        </div>
-        <div className="flex justify-start sm:order-1">
-          <MarketLinksCard />
-        </div>
+      <div className="flex justify-end">
+        <QuickCapture />
       </div>
 
       <Section title="Quick Stats">

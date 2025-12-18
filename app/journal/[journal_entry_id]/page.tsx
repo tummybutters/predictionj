@@ -1,22 +1,16 @@
-import { auth } from "@clerk/nextjs/server";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import { get } from "@/db/journal_entries";
 import { ensureUser } from "@/services/auth/ensure-user";
+import { getEntry } from "@/services/journal";
 import { JournalEditor } from "@/app/journal/_components/journal-editor";
-
-export const dynamic = "force-dynamic";
 
 export default async function JournalEntryDetailPage({
   params,
 }: {
   params: { journal_entry_id: string };
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
-
   const ensured = await ensureUser();
-  const entry = await get(ensured.user_id, params.journal_entry_id);
+  const entry = await getEntry(ensured.user_id, params.journal_entry_id);
 
   if (!entry) notFound();
 

@@ -1,4 +1,7 @@
-import type { JournalEntryRow } from "@/db/journal_entries";
+export type JournalEntryLike = {
+  title?: string | null;
+  body: string;
+};
 
 function firstNonEmptyLine(body: string): string | null {
   const lines = body.split(/\r?\n/);
@@ -23,7 +26,7 @@ export function derivePreview(body: string): string {
   return meaningful.slice(1).join(" · ").slice(0, 140);
 }
 
-export function getDisplayTitle(entry: Pick<JournalEntryRow, "title" | "body">): string {
+export function getDisplayTitle(entry: JournalEntryLike): string {
   const explicit = entry.title?.trim();
   if (explicit) return explicit;
   return deriveTitle(entry.body) ?? "Untitled";

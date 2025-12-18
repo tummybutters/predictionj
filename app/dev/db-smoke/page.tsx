@@ -1,25 +1,24 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
-import { create, list } from "@/db/journal_entries";
 import { ensureUser } from "@/services/auth/ensure-user";
+import { createEntry, listEntries } from "@/services/journal";
 import { PageHeader } from "@/components/app/page-header";
 import { Section } from "@/components/app/section";
 import { InsetPanel, Panel } from "@/components/ui/panel";
+import { Button } from "@/components/ui/button";
 
-export const dynamic = "force-dynamic";
-
-export default async function DbSmokePage() {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
-
+async function createDbSmokeEntryAction() {
+  "use server";
   const ensured = await ensureUser();
-
-  await create(ensured.user_id, {
+  await createEntry(ensured.user_id, {
     body: `db-smoke: ${new Date().toISOString()}`,
   });
+  revalidatePath("/dev/db-smoke");
+}
 
-  const entries = await list(ensured.user_id, { limit: 5 });
+export default async function DbSmokePage() {
+  const ensured = await ensureUser();
+  const entries = await listEntries(ensured.user_id, { limit: 5 });
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
@@ -35,6 +34,14 @@ export default async function DbSmokePage() {
       />
 
       <Panel className="p-5">
+        <div className="flex items-center justify-end">
+          <form action={createDbSmokeEntryAction}>
+            <Button type="submit" size="sm">
+              Insert smoke entry
+            </Button>
+          </form>
+        </div>
+
         <Section title="Last 5 journal entries">
           <ol className="space-y-3 text-sm">
             {entries.map((e) => (

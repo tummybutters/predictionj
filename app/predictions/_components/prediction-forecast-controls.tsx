@@ -91,17 +91,19 @@ export function PredictionForecastControls({
           onClick={() =>
             startTransition(async () => {
               setError(null);
-              try {
-                await updatePredictionForecast({
-                  prediction_id: predictionId,
-                  probability: probabilityInput,
-                  note,
-                });
-                setNote("");
-                router.refresh();
-              } catch (e) {
-                setError(e instanceof Error ? e.message : "Failed to update forecast.");
+              const result = await updatePredictionForecast({
+                prediction_id: predictionId,
+                probability: probabilityInput,
+                note,
+              });
+
+              if (!result.success) {
+                setError(result.message || "Failed to update forecast.");
+                return;
               }
+
+              setNote("");
+              router.refresh();
             })
           }
         >

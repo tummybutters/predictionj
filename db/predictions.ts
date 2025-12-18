@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/db/supabase/server";
+import { toNumber } from "@/db/utils";
 
 export type PredictionOutcome = "true" | "false" | "unknown";
 
@@ -17,6 +18,25 @@ export type PredictionRow = {
   created_at: string;
   updated_at: string;
 };
+
+export const PREDICTION_COLUMNS =
+  "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at" as const;
+
+function normalizeRow(row: Record<string, unknown>): PredictionRow {
+  return {
+    id: String(row.id ?? ""),
+    user_id: String(row.user_id ?? ""),
+    claim: String(row.claim ?? ""),
+    confidence: toNumber(row.confidence),
+    reference_line: toNumber(row.reference_line),
+    resolution_date: String(row.resolution_date ?? ""),
+    resolved_at: (row.resolved_at as string | null) ?? null,
+    outcome: (row.outcome as PredictionOutcome | null) ?? null,
+    resolution_note: (row.resolution_note as string | null) ?? null,
+    created_at: String(row.created_at ?? ""),
+    updated_at: String(row.updated_at ?? ""),
+  };
+}
 
 export type CreatePredictionInput = {
   claim: string;
@@ -40,9 +60,7 @@ export async function listOpen(
 
   const { data, error } = await supabase
     .from("predictions")
-    .select(
-      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
-    )
+    .select(PREDICTION_COLUMNS)
     .eq("user_id", userId)
     .is("resolved_at", null)
     .is("outcome", null)
@@ -50,7 +68,7 @@ export async function listOpen(
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(normalizeRow);
 }
 
 export async function countByStatus(userId: string): Promise<{
@@ -89,9 +107,7 @@ export async function listDueSoon(
 
   const { data, error } = await supabase
     .from("predictions")
-    .select(
-      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
-    )
+    .select(PREDICTION_COLUMNS)
     .eq("user_id", userId)
     .is("resolved_at", null)
     .is("outcome", null)
@@ -100,7 +116,7 @@ export async function listDueSoon(
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(normalizeRow);
 }
 
 export async function listRecentlyResolved(
@@ -111,16 +127,14 @@ export async function listRecentlyResolved(
 
   const { data, error } = await supabase
     .from("predictions")
-    .select(
-      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
-    )
+    .select(PREDICTION_COLUMNS)
     .eq("user_id", userId)
     .not("resolved_at", "is", null)
     .order("resolved_at", { ascending: false })
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(normalizeRow);
 }
 
 export async function list(
@@ -132,15 +146,13 @@ export async function list(
 
   const { data, error } = await supabase
     .from("predictions")
-    .select(
-      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
-    )
+    .select(PREDICTION_COLUMNS)
     .eq("user_id", userId)
     .order("resolution_date", { ascending: true })
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(normalizeRow);
 }
 
 export async function get(
@@ -151,15 +163,13 @@ export async function get(
 
   const { data, error } = await supabase
     .from("predictions")
-    .select(
-      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
-    )
+    .select(PREDICTION_COLUMNS)
     .eq("user_id", userId)
     .eq("id", predictionId)
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return data ? normalizeRow(data) : null;
 }
 
 export async function create(
@@ -177,13 +187,11 @@ export async function create(
       reference_line: input.reference_line ?? 0.5,
       resolution_date: input.resolution_date,
     })
-    .select(
-      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
-    )
+    .select(PREDICTION_COLUMNS)
     .single();
 
   if (error) throw error;
-  return data;
+  return normalizeRow(data);
 }
 
 export async function update(
@@ -212,13 +220,11 @@ export async function update(
     })
     .eq("user_id", userId)
     .eq("id", predictionId)
-    .select(
-      "id, user_id, claim, confidence, reference_line, resolution_date, resolved_at, outcome, resolution_note, created_at, updated_at",
-    )
+    .select(PREDICTION_COLUMNS)
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return data ? normalizeRow(data) : null;
 }
 
 export async function deleteById(

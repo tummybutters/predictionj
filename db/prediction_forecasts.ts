@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/db/supabase/server";
+import { toNumber } from "@/db/utils";
 
 export type PredictionForecastRow = {
   id: string;
@@ -10,15 +11,6 @@ export type PredictionForecastRow = {
   note: string | null;
   created_at: string;
 };
-
-function toNumber(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  }
-  return 0;
-}
 
 function normalizeRow(row: Record<string, unknown>): PredictionForecastRow {
   return {
@@ -72,4 +64,3 @@ export async function createForecast(input: {
   if (error) throw error;
   return normalizeRow(data);
 }
-

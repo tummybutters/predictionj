@@ -2,21 +2,20 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
 import { ensureUser } from "@/services/auth/ensure-user";
-import { list as listJournalEntries } from "@/db/journal_entries";
-import { listOpen as listOpenPredictions } from "@/db/predictions";
-import { list as listBeliefs } from "@/db/beliefs";
-import { derivePreview, getDisplayTitle } from "@/app/journal/_components/journal-utils";
+import { listEntries } from "@/services/journal";
+import { listOpen as listOpenPredictions } from "@/services/predictions";
+import { listUserBeliefs } from "@/services/beliefs";
+import { derivePreview, getDisplayTitle } from "@/lib/journal";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
-  content: z.string().max(20_000),
+  content: z.string().max(4_000),
 });
 
 const BodySchema = z.object({
-  messages: z.array(MessageSchema).min(1).max(50),
+  messages: z.array(MessageSchema).min(1).max(24),
 });
 
 function tokenize(s: string): string[] {
@@ -68,7 +67,7 @@ function toContext({
     ? predictions
         .map(
           (p) =>
-            `- [prediction:${p.id}] ${p.claim} (p=${p.confidence}%, due ${compactDate(
+            `- [prediction:${p.id}] ${p.claim} (p=${Math.round(p.confidence * 100)}%, due ${compactDate(
               p.resolution_date,
             )})`,
         )
@@ -100,26 +99,62 @@ function toContext({
   ].join("\n");
 }
 
+type RateLimitState = { windowStartMs: number; count: number };
+const rateLimitState = new Map<string, RateLimitState>();
+
+function checkRateLimit(key: string): { allowed: boolean; retryAfterSeconds: number } {
+  const now = Date.now();
+  const windowMs = 60_000;
+  const max = 20;
+
+  const curr = rateLimitState.get(key);
+  if (!curr || now - curr.windowStartMs >= windowMs) {
+    rateLimitState.set(key, { windowStartMs: now, count: 1 });
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+
+  if (curr.count >= max) {
+    const remaining = Math.max(0, windowMs - (now - curr.windowStartMs));
+    return { allowed: false, retryAfterSeconds: Math.ceil(remaining / 1000) };
+  }
+
+  curr.count += 1;
+  rateLimitState.set(key, curr);
+  return { allowed: true, retryAfterSeconds: 0 };
+}
+
 async function streamOpenAIText(payload: unknown): Promise<Response> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return new Response("Missing OPENAI_API_KEY on server.", { status: 500 });
   }
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25_000);
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    const isAbort = e instanceof DOMException ? e.name === "AbortError" : false;
+    return new Response(isAbort ? "Upstream timeout." : "Upstream request failed.", {
+      status: isAbort ? 504 : 502,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "");
-    return new Response(text || `Upstream error: ${res.status}`, {
-      status: 500,
-    });
+    return new Response(text || `Upstream error: ${res.status}`, { status: 502 });
   }
 
   const encoder = new TextEncoder();
@@ -173,7 +208,7 @@ async function streamOpenAIText(payload: unknown): Promise<Response> {
   return new Response(stream, {
     headers: {
       "content-type": "text/plain; charset=utf-8",
-      "cache-control": "no-cache, no-transform",
+      "cache-control": "no-store, no-transform",
     },
   });
 }
@@ -181,6 +216,16 @@ async function streamOpenAIText(payload: unknown): Promise<Response> {
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
+
+  const rl = checkRateLimit(userId);
+  if (!rl.allowed) {
+    return new Response("Rate limit exceeded.", {
+      status: 429,
+      headers: {
+        "retry-after": String(rl.retryAfterSeconds),
+      },
+    });
+  }
 
   const parsed = BodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return new Response("Invalid request", { status: 400 });
@@ -191,9 +236,9 @@ export async function POST(req: Request) {
   const terms = tokenize(lastUser);
 
   const [journalEntries, predictions, beliefs] = await Promise.all([
-    listJournalEntries(ensured.user_id, { limit: 200 }),
+    listEntries(ensured.user_id, { limit: 200 }),
     listOpenPredictions(ensured.user_id, { limit: 200 }),
-    listBeliefs(ensured.user_id, { limit: 80 }),
+    listUserBeliefs(ensured.user_id, { limit: 80 }),
   ]);
 
   const relevantJournal = journalEntries
@@ -251,6 +296,7 @@ export async function POST(req: Request) {
   return streamOpenAIText({
     model,
     temperature: 0.4,
+    max_tokens: 900,
     stream: true,
     messages: [{ role: "system", content: system }, { role: "system", content: context }, ...parsed.data.messages],
   });
