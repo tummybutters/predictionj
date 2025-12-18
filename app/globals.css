@@ -16,9 +16,15 @@
     --accent2: 186 59 63;
     --accent3: 235 185 92;
 
-    --shadow-plush: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-    --shadow-glass: 0 18px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(255,255,255,.06);
-    --shadow-inset: inset 0 2px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05), 0 1px 0 rgba(255,255,255,.06);
+    --shadow-plush: 0 10px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .06);
+    --shadow-glass: 0 18px 60px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .10), inset 0 0 0 1px rgba(255, 255, 255, .06);
+    --shadow-inset: inset 0 2px 10px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .05), 0 1px 0 rgba(255, 255, 255, .06);
+
+    /* Premium Blue Palette */
+    --blue-primary: 31 90 254;
+    --blue-hover: 15 76 245;
+    --blue-border: 8 58 205;
+    --blue-light: 56 111 255;
   }
 
   html {
@@ -42,19 +48,24 @@
   /* Signed-in theme tokens (default = paper) */
   html[data-auth="1"][data-theme="light"] {
     color-scheme: light;
-    --bg: 247 241 233; /* warm paper */
-    --panel: 255 255 255; /* white card */
-    --panel2: 251 246 238; /* paper tint */
-    --border: 206 192 176; /* warm stone border */
-    --text: 24 21 17; /* warm ink */
+    --bg: 247 241 233;
+    /* warm paper */
+    --panel: 255 255 255;
+    /* white card */
+    --panel2: 251 246 238;
+    /* paper tint */
+    --border: 206 192 176;
+    /* warm stone border */
+    --text: 24 21 17;
+    /* warm ink */
     --muted: 104 95 87;
     --accent: 216 122 61;
     --accent2: 186 59 63;
     --accent3: 235 185 92;
 
-    --shadow-plush: 0 22px 70px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.62);
-    --shadow-glass: 0 34px 110px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.70), inset 0 0 0 1px rgba(0,0,0,.04);
-    --shadow-inset: inset 0 2px 10px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.75), 0 1px 0 rgba(255,255,255,.55);
+    --shadow-plush: 0 22px 70px rgba(0, 0, 0, .12), inset 0 1px 0 rgba(255, 255, 255, .62);
+    --shadow-glass: 0 34px 110px rgba(0, 0, 0, .14), inset 0 1px 0 rgba(255, 255, 255, .70), inset 0 0 0 1px rgba(0, 0, 0, .04);
+    --shadow-inset: inset 0 2px 10px rgba(0, 0, 0, .10), inset 0 1px 0 rgba(255, 255, 255, .75), 0 1px 0 rgba(255, 255, 255, .55);
   }
 
   html[data-auth="1"][data-theme="dark"] {
@@ -69,9 +80,9 @@
     --accent2: 186 59 63;
     --accent3: 235 185 92;
 
-    --shadow-plush: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-    --shadow-glass: 0 18px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(255,255,255,.06);
-    --shadow-inset: inset 0 2px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05), 0 1px 0 rgba(255,255,255,.06);
+    --shadow-plush: 0 10px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .06);
+    --shadow-glass: 0 18px 60px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .10), inset 0 0 0 1px rgba(255, 255, 255, .06);
+    --shadow-inset: inset 0 2px 10px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .05), 0 1px 0 rgba(255, 255, 255, .06);
   }
 
   html[data-auth="1"][data-theme="light"] body {
@@ -100,8 +111,203 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Delete Button Styles */
+  .btn-delete {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: rgb(20, 20, 20);
+    border: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.164);
+    cursor: pointer;
+    transition-duration: .3s;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .btn-delete .svgIcon {
+    width: 12px;
+    transition-duration: .3s;
+  }
+
+  .btn-delete .svgIcon path {
+    fill: white;
+  }
+
+  .btn-delete:hover {
+    width: 140px;
+    border-radius: 50px;
+    transition-duration: .3s;
+    background-color: rgb(255, 69, 69);
+    align-items: center;
+  }
+
+  .btn-delete:hover .svgIcon {
+    width: 50px;
+    transition-duration: .3s;
+    transform: translateY(60%);
+  }
+
+  .btn-delete::before {
+    position: absolute;
+    top: -20px;
+    content: "Delete";
+    color: white;
+    transition-duration: .3s;
+    font-size: 2px;
+  }
+
+  .btn-delete:hover::before {
+    font-size: 13px;
+    opacity: 1;
+    transform: translateY(30px);
+    transition-duration: .3s;
+  }
+
+  /* Animated "Learn More" Styles */
+  .btn-animated {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    outline: none;
+    border: 0;
+    vertical-align: middle;
+    text-decoration: none;
+    background: transparent;
+    padding: 0;
+    font-size: inherit;
+    font-family: inherit;
+    width: 12rem;
+    height: auto;
+  }
+
+  .btn-animated .circle {
+    transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+    position: relative;
+    display: block;
+    margin: 0;
+    width: 3rem;
+    height: 3rem;
+    background: #282936;
+    border-radius: 1.625rem;
+  }
+
+  .btn-animated .circle .icon {
+    transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    background: #fff;
+  }
+
+  .btn-animated .circle .icon.arrow {
+    transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+    left: 0.625rem;
+    width: 1.125rem;
+    height: 0.125rem;
+    background: none;
+  }
+
+  .btn-animated .circle .icon.arrow::before {
+    position: absolute;
+    content: "";
+    top: -0.29rem;
+    right: 0.0625rem;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-top: 0.125rem solid #fff;
+    border-right: 0.125rem solid #fff;
+    transform: rotate(45deg);
+  }
+
+  .btn-animated .button-text {
+    transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0.75rem 0;
+    margin: 0 0 0 1.85rem;
+    color: #282936;
+    font-weight: 700;
+    line-height: 1.6;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .btn-animated:hover .circle {
+    width: 100%;
+  }
+
+  .btn-animated:hover .circle .icon.arrow {
+    background: #fff;
+    transform: translate(1rem, 0);
+  }
+
+  .btn-animated:hover .button-text {
+    color: #fff;
+  }
+
+  /* Flap Tab Styles */
+  .tab-flap-container {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid rgba(var(--blue-border), 0.3);
+    padding-bottom: 0;
+  }
+
+  .tab-flap {
+    position: relative;
+    padding: 0.5rem 1.5rem;
+    background: rgba(var(--panel), 0.8);
+    border: 1px solid rgba(var(--border), 0.2);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+    margin-right: -4px;
+    clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
+  }
+
+  .tab-flap:hover {
+    background: rgba(var(--panel2), 1);
+    color: var(--text);
+    transform: translateY(-2px);
+  }
+
+  .tab-flap.active {
+    background: linear-gradient(rgba(var(--blue-primary), 0.2), rgba(var(--blue-primary), 0.05));
+    border-color: rgba(var(--blue-light), 0.4);
+    color: var(--blue-light);
+    z-index: 2;
+    transform: translateY(-1px);
+    box-shadow: 0 -4px 12px rgba(var(--blue-primary), 0.1);
+  }
+
+  .tab-flap.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background: var(--blue-light);
+    border-radius: 2px 2px 0 0;
   }
 }

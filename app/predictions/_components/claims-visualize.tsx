@@ -94,15 +94,13 @@ function TabButton({
   onClick: () => void;
 }) {
   return (
-    <Button
+    <button
       type="button"
-      size="sm"
-      variant={active ? "default" : "secondary"}
-      className={cn("h-8", active ? "" : "bg-panel/40")}
+      className={cn("tab-flap", active && "active")}
       onClick={onClick}
     >
       {children}
-    </Button>
+    </button>
   );
 }
 
@@ -291,7 +289,7 @@ function ProgressView({
   const avgAbsEdge =
     predictions.length > 0
       ? predictions.reduce((sum, p) => sum + Math.abs(clamp(p.confidence, 0, 1) - clamp(p.reference_line, 0, 1)), 0) /
-        predictions.length
+      predictions.length
       : 0;
 
   const buckets: Record<string, number> = {};
@@ -721,7 +719,7 @@ export function ClaimsVisualize({
             Flip views, same claims
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="tab-flap-container">
           <TabButton active={tab === "calendar"} onClick={() => setTab("calendar")}>
             Calendar
           </TabButton>
@@ -746,13 +744,13 @@ export function ClaimsVisualize({
             />
           ) : null}
           <div className="mt-3">
-          {tab === "calendar" ? (
-            calendar
-          ) : tab === "matrix" ? (
-            <MatrixView predictions={sorted} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
-          ) : (
-            <ProgressView predictions={sorted} />
-          )}
+            {tab === "calendar" ? (
+              calendar
+            ) : tab === "matrix" ? (
+              <MatrixView predictions={sorted} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
+            ) : (
+              <ProgressView predictions={sorted} />
+            )}
           </div>
         </div>
       </div>

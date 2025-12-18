@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
 import type { JournalEntryRow } from "@/db/journal_entries";
@@ -255,9 +256,7 @@ export function JournalEditor({ entry }: Props) {
 
             <form action={deleteJournalEntryAction}>
               <input type="hidden" name="id" value={entry.id} />
-              <Button type="submit" variant="destructive" size="sm">
-                Delete
-              </Button>
+              <DeleteButton type="submit" />
             </form>
           </div>
         </div>

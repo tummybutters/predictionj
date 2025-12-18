@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { Label } from "@/components/ui/label";
 import { Panel, InsetPanel } from "@/components/ui/panel";
 import { PageHeader } from "@/components/app/page-header";
@@ -323,9 +324,7 @@ export default async function PredictionDetailPage({
           actions={
             <form action={deletePredictionAction}>
               <input type="hidden" name="id" value={prediction.id} />
-              <Button variant="destructive" type="submit" disabled={isResolved}>
-                Delete prediction
-              </Button>
+              <DeleteButton type="submit" disabled={isResolved} />
             </form>
           }
         >

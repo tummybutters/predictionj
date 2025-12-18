@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { SignUpButton } from "@clerk/nextjs";
+import { AnimatedButton } from "@/components/ui/animated-button";
 
 import { cn } from "@/lib/cn";
 
@@ -169,7 +170,7 @@ export function LandingHomeSections() {
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
             <SignUpButton mode="modal">
               <button type="button">
-                <PrimaryCtaButton>Start Tracking — free</PrimaryCtaButton>
+                <AnimatedButton text="Start Tracking — free" />
               </button>
             </SignUpButton>
             <a
@@ -453,7 +454,7 @@ export function LandingHomeSections() {
               </div>
               <SignUpButton mode="modal">
                 <button type="button">
-                  <PrimaryCtaButton>Start Tracking — free</PrimaryCtaButton>
+                  <AnimatedButton text="Start Tracking — free" />
                 </button>
               </SignUpButton>
             </div>

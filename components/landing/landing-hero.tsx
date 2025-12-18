@@ -4,6 +4,7 @@ import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { LandingShell } from "@/components/landing/landing-shell";
 import { LandingHomeSections } from "@/components/landing/landing-home-sections";
 import { LandingPricingSections } from "@/components/landing/landing-pricing";
+import { AnimatedButton } from "@/components/ui/animated-button";
 
 function PrimaryCtaButton({ children }: { children: React.ReactNode }) {
   return (
@@ -87,7 +88,7 @@ export function LandingHero() {
                 <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                   <SignUpButton mode="modal">
                     <button type="button">
-                      <PrimaryCtaButton>Start Tracking — free</PrimaryCtaButton>
+                      <AnimatedButton text="Start Tracking — free" />
                     </button>
                   </SignUpButton>
                   <SignInButton mode="modal">
