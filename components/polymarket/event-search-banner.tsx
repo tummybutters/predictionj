@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -297,7 +298,7 @@ export function PolymarketEventSearchBanner({
               ) : null}
 
               {searchStatus !== "loading" && results.length === 0 ? (
-                <EmptyState className="rounded-2xl p-8">No events found for "{query}".</EmptyState>
+                <EmptyState className="rounded-2xl p-8">No events found for &quot;{query}&quot;.</EmptyState>
               ) : null}
 
               {results.length > 0 ? (
@@ -342,11 +343,12 @@ export function PolymarketEventSearchBanner({
                         >
                           {e.image ? (
                             <div className="relative mb-2 aspect-video overflow-hidden rounded-xl bg-muted/20">
-                              <img
+                              <Image
                                 src={e.image}
                                 alt=""
-                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                loading="lazy"
+                                fill
+                                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                unoptimized
                               />
                             </div>
                           ) : (
