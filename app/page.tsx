@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 
 import { getDashboard } from "@/services/dashboard/get-dashboard";
-import { QuickCapture } from "@/components/home/quick-capture";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { PageHeader } from "@/components/app/page-header";
@@ -29,9 +28,6 @@ export default async function HomePage() {
         subtitle="Read-only. Computed from your existing data."
       />
 
-      <div className="flex justify-end">
-        <QuickCapture />
-      </div>
 
       <Section title="Quick Stats">
         <div className="grid gap-3 sm:grid-cols-2">

@@ -222,8 +222,21 @@ export function GlobalChat() {
                         </div>
 
                         {/* Input Area */}
-                        <div className="border-t border-black/5 bg-white/40 p-4">
-                            <div className="relative flex items-end gap-2">
+                        <div className="border-t border-black/5 bg-white/40 p-5">
+                            <div className="relative flex items-center justify-end">
+                                {/* Modes (Visual parity with QuickCapture) */}
+                                <div className={cn(
+                                    "absolute left-0 flex gap-2 transition-all duration-350 ease-spring",
+                                    (input.trim() || isSending) && "opacity-0 invisible pointer-events-none blur-sm -translate-x-2"
+                                )}>
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-black/5 bg-white/50 text-black/40 shadow-sm">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"></path></svg>
+                                    </div>
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-black/5 bg-white/50 text-black/40 shadow-sm">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"></path><path d="M7 14l3-3 4 4 6-7"></path></svg>
+                                    </div>
+                                </div>
+
                                 <textarea
                                     ref={textareaRef}
                                     value={input}
@@ -234,29 +247,33 @@ export function GlobalChat() {
                                             void sendMessage();
                                         }
                                     }}
-                                    placeholder="Ask something…"
+                                    placeholder="Ask anything…"
                                     className={cn(
-                                        "min-h-[44px] w-full resize-none rounded-[18px] border border-black/10 bg-white/60 px-4 py-3 pb-3 pr-12 text-sm text-black placeholder:text-black/30 shadow-inset",
-                                        "focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white"
+                                        "min-h-[44px] w-full resize-none rounded-full border border-black/10 bg-white/65 px-4 py-3 pb-3 pr-12 text-sm text-black placeholder:text-black/35 shadow-plush",
+                                        "transition-all duration-350 ease-spring",
+                                        "focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white",
+                                        !input.trim() && !isSending ? "ml-24 max-w-[240px]" : "ml-0 max-w-full"
                                     )}
+                                    style={{ transitionTimingFunction: "cubic-bezier(0.175, 0.885, 0.32, 1.05)" }}
                                 />
+
                                 <button
                                     disabled={isSending || !input.trim()}
                                     onClick={sendMessage}
                                     className={cn(
-                                        "absolute bottom-1.5 right-1.5 flex h-8 w-8 items-center justify-center rounded-[12px] transition-all",
+                                        "absolute right-1.5 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200",
                                         input.trim() ? "bg-black text-white shadow-lg scale-100" : "bg-black/5 text-black/20 scale-90"
                                     )}
                                 >
                                     {isSending ? (
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                                     ) : (
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7" /><path d="M12 19V5" /></svg>
                                     )}
                                 </button>
                             </div>
-                            <div className="mt-2 text-center">
-                                <p className="text-[9px] font-medium tracking-wide text-black/30 uppercase">
+                            <div className="mt-3 text-center">
+                                <p className="text-[9px] font-bold tracking-widest text-black/25 uppercase">
                                     Powered by Gemini 3 Flash
                                 </p>
                             </div>

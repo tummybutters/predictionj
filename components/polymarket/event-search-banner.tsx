@@ -15,6 +15,7 @@ type GammaEventLite = {
   slug: string;
   title: string;
   endDate?: string;
+  image?: string;
   volume24hr?: string;
   volume1wk?: string;
   volume1mo?: string;
@@ -104,6 +105,7 @@ export function PolymarketEventSearchBanner({
     defaultCarouselOpen ?? !compact,
   );
   const [resultsOpen, setResultsOpen] = React.useState(false);
+  const [hasSearched, setHasSearched] = React.useState(false);
 
   const latestSearchRequestId = React.useRef(0);
   const latestTrendingRequestId = React.useRef(0);
@@ -172,8 +174,9 @@ export function PolymarketEventSearchBanner({
         const data = (await res.json()) as { events?: GammaEventLite[] };
 
         if (latestSearchRequestId.current !== requestId) return;
-        setResults((data.events ?? []).slice(0, 10));
+        setResults((data.events ?? []).slice(0, 25));
         setSearchStatus("idle");
+        setHasSearched(true);
       } catch {
         if (latestSearchRequestId.current !== requestId) return;
         setResults([]);
@@ -202,9 +205,10 @@ export function PolymarketEventSearchBanner({
   }
 
   const hasQuery = query.trim().length > 0;
+  const showResults = (hasQuery || hasSearched) && resultsOpen;
 
   return (
-    <Panel ref={rootRef} className={cn(compact ? "rounded-2xl p-3" : "rounded-3xl p-4")}>
+    <Panel ref={rootRef} className={cn(compact ? "rounded-2xl p-3" : "rounded-3xl p-4", "!overflow-visible")}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs text-muted">Trending</div>
         <Button
@@ -274,81 +278,134 @@ export function PolymarketEventSearchBanner({
             </button>
           </form>
 
-          {hasQuery && resultsOpen ? (
+          {showResults ? (
             <Panel
               className={cn(
                 "absolute left-0 right-0 z-50 border-border/15 bg-panel/95 shadow-glass backdrop-blur-md",
                 compact
-                  ? "top-[calc(100%+8px)] rounded-2xl p-1.5"
-                  : "top-[calc(100%+10px)] rounded-3xl p-2",
+                  ? "top-[calc(100%+8px)] rounded-2xl p-2"
+                  : "top-[calc(100%+10px)] rounded-3xl p-4",
               )}
             >
-              <div className="flex items-center justify-between gap-2 px-2 py-1 text-xs text-muted">
-                <span>Top results</span>
-                {searchStatus === "loading" ? <span aria-live="polite">Loading…</span> : null}
+              <div className="mb-3 flex items-center justify-between gap-2 px-1 text-xs text-muted">
+                <span className="font-semibold uppercase tracking-wider">Search Results</span>
+                {searchStatus === "loading" ? <span aria-live="polite">Searching…</span> : null}
               </div>
 
               {searchStatus === "error" ? (
-                <EmptyState className="rounded-2xl p-4">Couldn’t load results.</EmptyState>
+                <EmptyState className="rounded-2xl p-8">Couldn’t load results. Please try again.</EmptyState>
               ) : null}
 
               {searchStatus !== "loading" && results.length === 0 ? (
-                <EmptyState className="rounded-2xl p-4">No events found.</EmptyState>
+                <EmptyState className="rounded-2xl p-8">No events found for "{query}".</EmptyState>
               ) : null}
 
               {results.length > 0 ? (
-                <ol
+                <div
                   className={cn(
-                    "overflow-auto p-1",
-                    compact ? "max-h-[280px] space-y-1.5" : "max-h-[340px] space-y-2",
+                    "grid gap-3 overflow-auto p-1",
+                    "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+                    compact ? "max-h-[400px]" : "max-h-[600px]",
                   )}
                 >
-                  {results.map((e) => {
+                  {Array.from({ length: 25 }).map((_, i) => {
+                    const e = results[i];
+                    if (!e) {
+                      return (
+                        <div key={`empty-${i}`} className="group relative flex flex-col h-full opacity-30 select-none">
+                          <InsetPanel
+                            className={cn(
+                              "flex flex-col h-full rounded-2xl border-border/5 bg-panel/20",
+                              "p-2.5",
+                            )}
+                          >
+                            <div className="mb-2 aspect-video rounded-xl bg-muted/5 flex items-center justify-center">
+                              <div className="h-6 w-6 rounded-full bg-muted/10" />
+                            </div>
+                            <div className="h-3 w-1/2 bg-muted/10 rounded mb-2" />
+                            <div className="h-3 w-3/4 bg-muted/10 rounded mb-3" />
+                            <div className="mt-auto h-7 w-full bg-muted/10 rounded-lg pt-2 border-t border-border/5" />
+                          </InsetPanel>
+                        </div>
+                      );
+                    }
+
                     const createHref = `/predictions?prefill=${encodeURIComponent(e.title)}`;
 
                     return (
-                      <li key={e.id}>
+                      <div key={e.id} className="group relative flex flex-col h-full">
                         <InsetPanel
                           className={cn(
-                            "flex items-center justify-between gap-3 rounded-2xl border-border/15 bg-panel/60 transition-colors duration-200 ease-out hover:bg-panel/70",
-                            compact ? "p-2" : "p-3",
+                            "flex flex-col h-full rounded-2xl border-border/10 bg-panel/40 transition-all duration-300 ease-out hover:bg-panel/60 hover:shadow-lg hover:-translate-y-0.5",
+                            "p-2.5",
                           )}
                         >
+                          {e.image ? (
+                            <div className="relative mb-2 aspect-video overflow-hidden rounded-xl bg-muted/20">
+                              <img
+                                src={e.image}
+                                alt=""
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : (
+                            <div className="mb-2 aspect-video rounded-xl bg-muted/10 flex items-center justify-center text-muted/30">
+                              <SearchIcon className="h-6 w-6" />
+                            </div>
+                          )}
+
                           <Link
                             href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
-                            className="min-w-0 flex-1"
+                            className="flex-1"
                             onClick={() => setResultsOpen(false)}
                           >
                             <div
                               className={cn(
-                                "line-clamp-1 font-medium hover:underline",
-                                compact ? "text-[13px]" : "text-sm",
+                                "line-clamp-2 font-medium hover:text-accent transition-colors leading-tight mb-3",
+                                compact ? "text-[12px]" : "text-[13px]",
                               )}
+                              title={e.title}
                             >
                               {e.title}
                             </div>
                           </Link>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <Link href={`/polymarket/events/${encodeURIComponent(e.slug)}`}>
+
+                          <div className="mt-auto flex items-center gap-1.5 pt-2 border-t border-border/5">
+                            <Link
+                              href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
+                              className="flex-1"
+                              onClick={() => setResultsOpen(false)}
+                            >
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                className={cn(compact ? "h-7 px-2" : "h-8 px-2")}
+                                className="w-full h-7 text-[11px] px-0 rounded-lg bg-panel/50 border-none hover:bg-panel/80"
                               >
                                 Details
                               </Button>
                             </Link>
-                            <Link href={createHref} aria-label="Make prediction">
-                              <Button size="sm" className={cn(compact ? "h-7 w-7 p-0" : "h-8 w-8 p-0")}>
+                            <Link
+                              href={createHref}
+                              aria-label="Make prediction"
+                              className="shrink-0"
+                            >
+                              <Button
+                                size="sm"
+                                className="h-7 w-7 p-0 rounded-lg shadow-sm"
+                              >
                                 +
                               </Button>
                             </Link>
                           </div>
                         </InsetPanel>
-                      </li>
+                      </div>
                     );
                   })}
-                </ol>
+                  {/* Fill up to 5x5 grid with empty slots if needed, but usually just showing results is better. 
+                      However user asked for "filled to a 5x5 default". 
+                      If we want exactly 25 slots, we could pad it. */}
+                </div>
               ) : null}
             </Panel>
           ) : null}
