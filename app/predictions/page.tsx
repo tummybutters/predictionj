@@ -6,6 +6,7 @@ import { getOpenPredictionsIndexData } from "@/services/predictions";
 import { PredictionForm } from "@/app/predictions/_components/prediction-form";
 import { createPredictionAction } from "@/app/predictions/actions";
 import { PredictionsList } from "@/app/predictions/_components/predictions-list";
+import { ClaimsVisualize } from "@/app/predictions/_components/claims-visualize";
 import { PolymarketEventSearchBanner } from "@/components/polymarket/event-search-banner";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { PageHeader } from "@/components/app/page-header";
@@ -24,7 +25,7 @@ export default async function PredictionsIndexPage({
   const resolveBy = searchParams?.resolve_by?.trim();
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-6 py-8">
+    <main className="mx-auto max-w-5xl space-y-6 px-6 pb-8 pt-24">
       <PolymarketEventSearchBanner
         density="compact"
         defaultCarouselOpen={false}
@@ -33,7 +34,7 @@ export default async function PredictionsIndexPage({
 
       <PageHeader
         title="Predictions"
-        subtitle="Binary, resolvable predictions (no analytics)."
+        subtitle="A workspace for resolvable claims: visualize, update, and paper trade."
         actions={
           <Link href="/">
             <Button variant="secondary" size="sm">
@@ -74,6 +75,12 @@ export default async function PredictionsIndexPage({
         </Section>
       </Panel>
 
+      <ClaimsVisualize
+        predictions={predictions}
+        positionsByPredictionId={positionsByPredictionId}
+        accountBalance={account.balance}
+      />
+
       {searchParams?.error === "validation" ? (
         <Panel className="border-accent/20 bg-panel/55 p-3 text-sm text-accent">
           Invalid input. Please try again.
@@ -87,9 +94,9 @@ export default async function PredictionsIndexPage({
         defaultValues={
           prefill || resolveBy
             ? {
-                question: prefill ?? "",
-                resolve_by: resolveBy,
-              }
+              question: prefill ?? "",
+              resolve_by: resolveBy,
+            }
             : undefined
         }
       />

@@ -22,7 +22,7 @@ export default async function HomePage() {
   const dashboard = await getDashboard();
 
   return (
-    <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+    <main className="mx-auto max-w-5xl space-y-8 px-6 pb-10 pt-24">
       <PolymarketEventSearchBanner />
       <PageHeader
         title="Dashboard"

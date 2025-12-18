@@ -5,21 +5,23 @@ import { ensureUser } from "@/services/auth/ensure-user";
 import { listEntries } from "@/services/journal";
 import { listOpen as listOpenPredictions } from "@/services/predictions";
 import { listUserBeliefs } from "@/services/beliefs";
+import { getDashboard, DashboardData } from "@/services/dashboard/get-dashboard";
 import { derivePreview, getDisplayTitle } from "@/lib/journal";
 
 export const runtime = "nodejs";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
-  content: z.string().max(4_000),
+  content: z.string().max(8_000),
+  thoughtSignature: z.string().optional(),
 });
 
 const BodySchema = z.object({
-  messages: z.array(MessageSchema).min(1).max(24),
+  messages: z.array(MessageSchema).min(1).max(50),
 });
 
 function tokenize(s: string): string[] {
-  return (s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []).slice(0, 24);
+  return (s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []).slice(0, 50);
 }
 
 function scoreText(text: string, terms: string[]): number {
@@ -33,7 +35,7 @@ function scoreText(text: string, terms: string[]): number {
       if (idx === -1) break;
       score += 1;
       idx += t.length;
-      if (score > 60) return score;
+      if (score > 100) return score;
     }
   }
   return score;
@@ -46,52 +48,61 @@ function compactDate(s: string): string {
 }
 
 function toContext({
+  dashboard,
   journal,
   predictions,
   beliefs,
 }: {
+  dashboard: DashboardData;
   journal: { id: string; title: string; entry_at: string; preview: string }[];
   predictions: { id: string; claim: string; confidence: number; resolution_date: string }[];
   beliefs: { id: string; statement: string; is_foundational: boolean }[];
 }): string {
+  const stats = [
+    `Journal Entries: ${dashboard.quick_stats.journal_entries.all_time} total (${dashboard.quick_stats.journal_entries.last_7_days} in last 7d)`,
+    `Predictions: ${dashboard.quick_stats.predictions.open} open, ${dashboard.quick_stats.predictions.resolved} resolved`,
+  ].join("\n");
+
   const journalLines = journal.length
     ? journal
-        .map(
-          (e) =>
-            `- [journal:${e.id}] ${e.title} (${compactDate(e.entry_at)}): ${e.preview}`,
-        )
-        .join("\n")
+      .map(
+        (e) =>
+          `- [journal:${e.id}] ${e.title} (${compactDate(e.entry_at)}): ${e.preview}`,
+      )
+      .join("\n")
     : "- (none)";
 
   const predictionLines = predictions.length
     ? predictions
-        .map(
-          (p) =>
-            `- [prediction:${p.id}] ${p.claim} (p=${Math.round(p.confidence * 100)}%, due ${compactDate(
-              p.resolution_date,
-            )})`,
-        )
-        .join("\n")
+      .map(
+        (p) =>
+          `- [prediction:${p.id}] ${p.claim} (p=${Math.round(p.confidence * 100)}%, due ${compactDate(
+            p.resolution_date,
+          )})`,
+      )
+      .join("\n")
     : "- (none)";
 
   const beliefLines = beliefs.length
     ? beliefs
-        .map(
-          (b) =>
-            `- [belief:${b.id}] ${b.statement}${
-              b.is_foundational ? " (foundational)" : ""
-            }`,
-        )
-        .join("\n")
+      .map(
+        (b) =>
+          `- [belief:${b.id}] ${b.statement}${b.is_foundational ? " (foundational)" : ""
+          }`,
+      )
+      .join("\n")
     : "- (none)";
 
   return [
     "USER CONTEXT (private; only the user can see this):",
     "",
-    "Journal (most relevant):",
+    "High-level Stats:",
+    stats,
+    "",
+    "Recent/Relevant Journal:",
     journalLines,
     "",
-    "Open predictions:",
+    "Open Predictions:",
     predictionLines,
     "",
     "Beliefs:",
@@ -105,7 +116,7 @@ const rateLimitState = new Map<string, RateLimitState>();
 function checkRateLimit(key: string): { allowed: boolean; retryAfterSeconds: number } {
   const now = Date.now();
   const windowMs = 60_000;
-  const max = 20;
+  const max = 30;
 
   const curr = rateLimitState.get(key);
   if (!curr || now - curr.windowStartMs >= windowMs) {
@@ -123,27 +134,50 @@ function checkRateLimit(key: string): { allowed: boolean; retryAfterSeconds: num
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
-async function streamOpenAIText(payload: unknown): Promise<Response> {
-  const apiKey = process.env.OPENAI_API_KEY;
+async function streamGeminiText(messages: { role: string; content: string; thoughtSignature?: string }[]): Promise<Response> {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) {
-    return new Response("Missing OPENAI_API_KEY on server.", { status: 500 });
+    return new Response("Missing GOOGLE_AI_API_KEY on server.", { status: 500 });
   }
 
+  // Convert messages to Gemini format
+  const contents = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+    // Thought signatures are handled by the SDK usually, but in REST they are part of the content part
+    ...(m.thoughtSignature ? { thoughtSignature: m.thoughtSignature } : {}),
+  }));
+
+  const payload = {
+    contents,
+    generationConfig: {
+      temperature: 1.0, // Gemini 3 recommends 1.0
+      maxOutputTokens: 2048,
+      thinking_config: {
+        thinking_level: "high", // Defaulting to high for better reasoning
+      },
+    },
+  };
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25_000);
+  const timeout = setTimeout(() => controller.abort(), 60_000);
 
   let res: Response;
   try {
-    res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
+    // Using v1alpha for Gemini 3 features like thinking_level and thoughtSignatures
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:streamGenerateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
       },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
+    );
   } catch (e) {
+    console.error("Gemini fetch error:", e);
     const isAbort = e instanceof DOMException ? e.name === "AbortError" : false;
     return new Response(isAbort ? "Upstream timeout." : "Upstream request failed.", {
       status: isAbort ? 504 : 502,
@@ -154,6 +188,7 @@ async function streamOpenAIText(payload: unknown): Promise<Response> {
 
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "");
+    console.error("Gemini error response:", text);
     return new Response(text || `Upstream error: ${res.status}`, { status: 502 });
   }
 
@@ -171,31 +206,24 @@ async function streamOpenAIText(payload: unknown): Promise<Response> {
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
 
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
+          // Gemini streaming format is a JSON array of objects, but delivered as SSE-like chunks or just concatenated JSON
+          // Actually, streamGenerateContent returns a JSON array: [ {...}, {...} ] or individual objects if using alt=sse
+          // For simplicity, we'll try to parse the buffer as it grows or use a regex to find text parts.
 
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-            const data = trimmed.slice("data:".length).trim();
-            if (!data) continue;
-            if (data === "[DONE]") {
-              controller.close();
-              return;
-            }
-
-            try {
-              const json = JSON.parse(data) as {
-                choices?: Array<{ delta?: { content?: string } }>;
-              };
-              const chunk = json.choices?.[0]?.delta?.content;
-              if (chunk) controller.enqueue(encoder.encode(chunk));
-            } catch {
-              // Ignore malformed lines.
-            }
+          let match;
+          const textRegex = /"text":\s*"((?:[^"\\]|\\.)*)"/g;
+          while ((match = textRegex.exec(buffer)) !== null) {
+            const text = JSON.parse(`"${match[1]}"`); // Unescape string
+            controller.enqueue(encoder.encode(text));
+            buffer = buffer.slice(match.index + match[0].length);
+            textRegex.lastIndex = 0; // Reset regex to start from new buffer position
           }
+
+          // Also look for thought signatures if needed (not strictly required for text output but good for history)
+          // For now, we only care about the text stream.
         }
       } catch (e) {
+        console.error("Stream processing error:", e);
         controller.error(e);
       } finally {
         reader.releaseLock();
@@ -207,8 +235,8 @@ async function streamOpenAIText(payload: unknown): Promise<Response> {
 
   return new Response(stream, {
     headers: {
-      "content-type": "text/plain; charset=utf-8",
-      "cache-control": "no-store, no-transform",
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store, no-transform",
     },
   });
 }
@@ -235,7 +263,8 @@ export async function POST(req: Request) {
   const lastUser = [...parsed.data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
   const terms = tokenize(lastUser);
 
-  const [journalEntries, predictions, beliefs] = await Promise.all([
+  const [dashboard, journalEntries, predictions, beliefs] = await Promise.all([
+    getDashboard(),
     listEntries(ensured.user_id, { limit: 200 }),
     listOpenPredictions(ensured.user_id, { limit: 200 }),
     listUserBeliefs(ensured.user_id, { limit: 80 }),
@@ -249,18 +278,18 @@ export async function POST(req: Request) {
       return { e, title, preview, score };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
+    .slice(0, 15) // Increased contextual items
     .map(({ e, title, preview }) => ({
       id: e.id,
       title,
       entry_at: e.entry_at,
-      preview: preview.slice(0, 220),
+      preview: preview.slice(0, 300),
     }));
 
   const relevantPredictions = predictions
     .map((p) => ({ p, score: scoreText(p.claim, terms) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
+    .slice(0, 15)
     .map(({ p }) => ({
       id: p.id,
       claim: p.claim,
@@ -278,26 +307,26 @@ export async function POST(req: Request) {
       is_foundational: b.is_foundational,
     }));
 
-  const system = [
-    "You are an assistant inside the user's Prediction Journal app.",
-    "You can use the USER CONTEXT below to answer and to reference the user's own entries/predictions/beliefs.",
-    "Do not invent content not present in the context; if something is missing, ask a follow-up question.",
-    "Be concise and practical. When you reference a specific item, cite it like [journal:<id>] or [prediction:<id>].",
+  const systemPrompt = [
+    "You are an expert reasoning assistant inside the user's Prediction Journal app.",
+    "Your goal is to help the user refine their thoughts, check their predictions, and reflect on their beliefs.",
+    "Use the USER CONTEXT provided to reference specific journal entries like [journal:<id>], predictions like [prediction:<id>], or beliefs [belief:<id>].",
+    "If the user asks about their stats, use the 'High-level Stats' provided in context.",
+    "Be concise, insightful, and always grounded in the user's data. If context is missing for a question, ask for clarification.",
+    "IMPORTANT: You are Gemini 3, state-of-the-art in reasoning. Use your internal thinking process to provide deep, high-quality analysis.",
   ].join("\n");
 
   const context = toContext({
+    dashboard,
     journal: relevantJournal,
     predictions: relevantPredictions,
     beliefs: relevantBeliefs,
   });
 
-  const model = "gpt-5-mini";
+  const finalMessages = [
+    { role: "user", content: `SYSTEM INSTRUCTIONS:\n${systemPrompt}\n\n${context}` },
+    ...parsed.data.messages,
+  ];
 
-  return streamOpenAIText({
-    model,
-    temperature: 0.4,
-    max_tokens: 900,
-    stream: true,
-    messages: [{ role: "system", content: system }, { role: "system", content: context }, ...parsed.data.messages],
-  });
+  return streamGeminiText(finalMessages);
 }

@@ -7,6 +7,7 @@ import { Section } from "@/components/app/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
+import { PolymarketMarketLive } from "@/components/polymarket/market-live";
 
 function toDateInputValue(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -43,6 +44,7 @@ export default async function PolymarketMarketPage({
   const resolveBy = toDateInputValue(market.endDateIso ?? market.endDate);
   const outcomes = safeParseStringArray(market.outcomes);
   const prices = safeParseStringArray(market.outcomePrices);
+  const tokenIds = safeParseStringArray(market.clobTokenIds);
 
   const createHref = `/predictions?prefill=${encodeURIComponent(market.question ?? market.slug)}${
     resolveBy ? `&resolve_by=${encodeURIComponent(resolveBy)}` : ""
@@ -113,6 +115,22 @@ export default async function PolymarketMarketPage({
             </div>
           ) : (
             <EmptyState className="rounded-2xl">Outcome prices unavailable.</EmptyState>
+          )}
+        </Section>
+      </Panel>
+
+      <Panel className="p-5">
+        <Section title="Live market">
+          {market.conditionId && tokenIds && outcomes && tokenIds.length === outcomes.length ? (
+            <PolymarketMarketLive
+              conditionId={market.conditionId}
+              tokenIds={tokenIds}
+              outcomes={outcomes}
+            />
+          ) : (
+            <EmptyState className="rounded-2xl">
+              Live orderbook/trades unavailable for this market.
+            </EmptyState>
           )}
         </Section>
       </Panel>

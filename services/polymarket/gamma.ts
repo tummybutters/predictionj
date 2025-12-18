@@ -10,6 +10,7 @@ export type GammaTag = {
 
 export type GammaMarket = {
   id: string;
+  conditionId?: string;
   slug: string;
   question?: string;
   description?: string;
@@ -121,4 +122,3 @@ export async function getMarketBySlug(slug: string): Promise<GammaMarket> {
     next: { revalidate: 60 },
   });
 }
-

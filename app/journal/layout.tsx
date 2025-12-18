@@ -7,7 +7,7 @@ export default async function JournalLayout({ children }: { children: React.Reac
   const entries = await listEntries(ensured.user_id, { limit: 200 });
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-6 py-10">
+    <main className="mx-auto max-w-6xl space-y-6 px-6 pb-10 pt-24">
       <JournalShell initialEntries={entries}>{children}</JournalShell>
     </main>
   );

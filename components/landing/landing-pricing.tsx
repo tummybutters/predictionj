@@ -246,7 +246,7 @@ export function LandingPricingSections() {
 
 export function LandingPricing() {
   return (
-    <LandingShell active="pricing">
+    <LandingShell>
       <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 pb-20 pt-28">
         <LandingPricingSections />
       </main>

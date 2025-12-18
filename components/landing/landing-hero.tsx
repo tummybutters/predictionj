@@ -43,7 +43,7 @@ function FeatureChip({ children }: { children: React.ReactNode }) {
 
 export function LandingHero() {
   return (
-    <LandingShell active="home">
+    <LandingShell>
       <main id="top" className="flex flex-1 flex-col">
         <section className="relative isolate overflow-hidden">
           <div className="absolute inset-0 -z-10">
