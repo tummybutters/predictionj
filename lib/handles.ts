@@ -31,3 +31,10 @@ export function isDefaultHandle(handle: string | null | undefined): boolean {
   if (h.startsWith("new-")) return true;
   return ["note", "belief", "prediction", "framework", "data"].includes(h);
 }
+
+export function normalizeShortHandle(input: string, maxLen = 7): string {
+  const slug = slugifyHandle(input).replace(/-/g, "");
+  const safe = slug.slice(0, maxLen);
+  if (safe.length >= 2) return safe;
+  return "obj".slice(0, Math.max(2, maxLen));
+}

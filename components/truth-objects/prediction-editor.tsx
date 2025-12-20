@@ -4,7 +4,7 @@ import * as React from "react";
 
 import type { TruthObjectRow } from "@/db/truth_objects";
 import { cn } from "@/lib/cn";
-import { isDefaultHandle, normalizeHandle } from "@/lib/handles";
+import { isDefaultHandle, normalizeShortHandle } from "@/lib/handles";
 import { Pill } from "@/components/ui/pill";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { suggestHandleAction, updateTruthObjectAction } from "@/app/journal/_actions/truth-objects";
@@ -89,6 +89,20 @@ function parseMetadata(raw: unknown): PredictionMetadata {
 function formatPercent(v: number | null): string {
   if (v == null) return "—";
   return `${Math.round(clamp01(v) * 100)}%`;
+}
+
+function buildHandleSeed(title: string, question: string): string {
+  const t = title.trim();
+  const q = question.trim();
+  if (t && q) {
+    const max = 220;
+    const glue = " — ";
+    if (t.length + q.length + glue.length <= max) return `${t}${glue}${q}`;
+    const remaining = Math.max(0, max - t.length - glue.length);
+    const qShort = remaining > 0 ? q.slice(0, remaining) : "";
+    return qShort ? `${t}${glue}${qShort}` : t;
+  }
+  return t || q;
 }
 
 export function PredictionEditor({ object }: { object: TruthObjectRow }) {
@@ -195,7 +209,8 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
   React.useEffect(() => {
     if (autoHandleRef.current) return;
     if (!isDefaultHandle(handle)) return;
-    const seed = (question || title).trim();
+    if (saveState !== "saved") return;
+    const seed = buildHandleSeed(title, question);
     if (seed.length < 3) return;
 
     const t = window.setTimeout(async () => {
@@ -213,13 +228,13 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
     }, 800);
 
     return () => window.clearTimeout(t);
-  }, [handle, object.id, question, title]);
+  }, [handle, object.id, question, saveState, title]);
 
   async function regenerateHandle() {
     autoHandleRef.current = true;
     setHandleState("loading");
     try {
-      const seed = (question || title).trim();
+      const seed = buildHandleSeed(title, question);
       const res = await suggestHandleAction({ id: object.id, seed });
       setHandle(res.handle);
       setHandleDraft(res.handle);
@@ -231,7 +246,7 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
   }
 
   async function saveHandle() {
-    const next = normalizeHandle(handleDraft);
+    const next = normalizeShortHandle(handleDraft, 7);
     if (!next) return;
     setHandleState("loading");
     setHandleError(null);

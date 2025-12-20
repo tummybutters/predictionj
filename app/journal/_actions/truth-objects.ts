@@ -3,7 +3,7 @@
 import { ensureUser } from "@/services/auth/ensure-user";
 import type { TruthObjectType, TruthObjectRow } from "@/db/truth_objects";
 import { create, getByHandle, getById, update } from "@/db/truth_objects";
-import { normalizeHandle, randomSuffix, withShortSuffix } from "@/lib/handles";
+import { normalizeHandle, normalizeShortHandle, randomSuffix, withShortSuffix } from "@/lib/handles";
 
 function assertTruthObjectType(v: string): asserts v is TruthObjectType {
   const allowed: TruthObjectType[] = ["note", "belief", "prediction", "framework", "data"];
@@ -114,10 +114,10 @@ async function generateHandleWithGemini(input: {
 
   const seed = input.seed.slice(0, 240);
   const prompt = [
-    "Return ONE short unique @handle.",
-    "Rules: lowercase, 2-24 chars, hyphenated if needed, no spaces, no punctuation, no prefix.",
+    "Return ONE short unique handle.",
+    "Rules: lowercase letters/numbers only, 2-7 chars, no hyphens, no spaces, no prefix.",
     `Type: ${input.type}`,
-    `Idea: ${seed}`,
+    `Title+Question: ${seed}`,
   ].join("\n");
 
   const payload = {
@@ -158,10 +158,10 @@ async function generateHandleWithOpenAI(input: {
   const model = process.env.HANDLE_AI_MODEL ?? "gpt-5-nano";
   const seed = input.seed.slice(0, 240);
   const prompt = [
-    "Return ONE short unique @handle.",
-    "Rules: lowercase, 2-24 chars, hyphenated if needed, no spaces, no punctuation, no prefix.",
+    "Return ONE short unique handle.",
+    "Rules: lowercase letters/numbers only, 2-7 chars, no hyphens, no spaces, no prefix.",
     `Type: ${input.type}`,
-    `Idea: ${seed}`,
+    `Title+Question: ${seed}`,
   ].join("\n");
 
   const payload = {
@@ -240,6 +240,30 @@ async function ensureUniqueHandle(input: {
   return withShortSuffix(handle, randomSuffix());
 }
 
+async function ensureUniqueShortHandle(input: {
+  userId: string;
+  objectId: string;
+  handle: string;
+  maxLen?: number;
+}): Promise<string> {
+  const maxLen = input.maxLen ?? 7;
+  const base = normalizeShortHandle(input.handle, maxLen);
+
+  const existing = await getByHandle(input.userId, base);
+  if (!existing || existing.id === input.objectId) return base;
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const suffix = randomSuffix().slice(0, 2);
+    const cut = Math.max(2, maxLen - suffix.length);
+    const candidate = `${base.slice(0, cut)}${suffix}`;
+    const hit = await getByHandle(input.userId, candidate);
+    if (!hit) return candidate;
+  }
+
+  const fallback = `${base.slice(0, Math.max(2, maxLen - 1))}${randomSuffix().slice(0, 1)}`;
+  return fallback.slice(0, maxLen);
+}
+
 export async function suggestHandleAction(
   input: HandleSuggestionInput & { seed?: string },
 ): Promise<{ handle: string }> {
@@ -249,8 +273,8 @@ export async function suggestHandleAction(
 
   const seed = (input.seed ?? "").trim() || pickHandleSeed(obj);
   const modelHandle = await generateHandle({ type: obj.type, seed });
-  const baseHandle = normalizeHandle(modelHandle ?? seed);
-  const uniqueHandle = await ensureUniqueHandle({
+  const baseHandle = normalizeShortHandle(modelHandle ?? seed, 7);
+  const uniqueHandle = await ensureUniqueShortHandle({
     userId: ensured.user_id,
     objectId: obj.id,
     handle: baseHandle,

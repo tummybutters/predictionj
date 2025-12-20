@@ -4,7 +4,7 @@ import * as React from "react";
 
 import type { TruthObjectRow } from "@/db/truth_objects";
 import { cn } from "@/lib/cn";
-import { isDefaultHandle, normalizeHandle } from "@/lib/handles";
+import { isDefaultHandle, normalizeShortHandle } from "@/lib/handles";
 import { Pill } from "@/components/ui/pill";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { suggestHandleAction, updateTruthObjectAction } from "@/app/journal/_actions/truth-objects";
@@ -91,6 +91,7 @@ export function BeliefEditor({ object }: { object: TruthObjectRow }) {
   React.useEffect(() => {
     if (autoHandleRef.current) return;
     if (!isDefaultHandle(handle)) return;
+    if (saveState !== "saved") return;
     const seed = (statement || title).trim();
     if (seed.length < 3) return;
 
@@ -109,7 +110,7 @@ export function BeliefEditor({ object }: { object: TruthObjectRow }) {
     }, 800);
 
     return () => window.clearTimeout(t);
-  }, [handle, object.id, statement, title]);
+  }, [handle, object.id, saveState, statement, title]);
 
   async function regenerateHandle() {
     autoHandleRef.current = true;
@@ -127,7 +128,7 @@ export function BeliefEditor({ object }: { object: TruthObjectRow }) {
   }
 
   async function saveHandle() {
-    const next = normalizeHandle(handleDraft);
+    const next = normalizeShortHandle(handleDraft, 7);
     if (!next) return;
     setHandleState("loading");
     setHandleError(null);
