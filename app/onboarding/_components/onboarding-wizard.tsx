@@ -22,8 +22,8 @@ type Status = {
 type StepKey = "connect" | "prompt" | "paste" | "done";
 
 function stepForStatus(s: Status): StepKey {
-  if (!s.connected) return "connect";
   if (!s.hasObjects) return "prompt";
+  if (!s.connected) return "connect";
   return "done";
 }
 
@@ -66,7 +66,7 @@ export function OnboardingWizard({
     }
   }
 
-  const stepIndex = step === "connect" ? 1 : step === "prompt" ? 2 : step === "paste" ? 3 : 4;
+  const stepIndex = step === "prompt" ? 1 : step === "paste" ? 2 : step === "connect" ? 3 : 4;
 
   return (
     <div className="space-y-6">
@@ -75,21 +75,21 @@ export function OnboardingWizard({
           <div className="min-w-0">
             <div className="text-xs font-semibold text-muted">Step {stepIndex} of 4</div>
             <div className="mt-1 text-lg font-semibold text-text">
-              {step === "connect"
-                ? "Connect your markets"
-                : step === "prompt"
-                  ? "Generate your seed dump"
-                  : step === "paste"
-                    ? "Import your seed dump"
+              {step === "prompt"
+                ? "Generate your seed dump"
+                : step === "paste"
+                  ? "Import your seed dump"
+                  : step === "connect"
+                    ? "Connect your markets"
                     : "Ready"}
             </div>
             <div className="mt-1 text-sm text-muted">
-              {step === "connect"
-                ? "Connect Polymarket or Kalshi so your dashboard can mirror your real portfolio."
-                : step === "prompt"
-                  ? "Copy this prompt into your favorite AI and run it once."
-                  : step === "paste"
-                    ? "Paste the AI response here. We’ll turn it into referenceable truth objects."
+              {step === "prompt"
+                ? "Copy this prompt into your favorite AI and run it once."
+                : step === "paste"
+                  ? "Paste the AI response here. We’ll turn it into referenceable truth objects."
+                  : step === "connect"
+                    ? "Now connect Polymarket or Kalshi so your dashboard can mirror your real portfolio."
                     : "You’re in. Jump into Overview to see your raw data inventory."}
             </div>
           </div>
@@ -119,38 +119,6 @@ export function OnboardingWizard({
         </div>
       </Panel>
 
-      {step === "connect" ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ConnectPolymarketAccount />
-          <ConnectKalshiAccount />
-
-          <Panel className="lg:col-span-2 p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted">
-                Continue once at least one account is connected.
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={refreshStatus}
-                  disabled={isPending}
-                  className="h-10"
-                >
-                  Refresh
-                </Button>
-                <Button
-                  onClick={() => setStep("prompt")}
-                  disabled={!status.connected}
-                  className="h-10"
-                >
-                  Continue
-                </Button>
-              </div>
-            </div>
-          </Panel>
-        </div>
-      ) : null}
-
       {step === "prompt" ? (
         <Panel className="p-6">
           <InsetPanel className="p-5">
@@ -168,8 +136,18 @@ export function OnboardingWizard({
           </InsetPanel>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <Button variant="secondary" onClick={() => setStep("connect")} className="h-10">
-              Back
+            <Link
+              href="/dashboard"
+              className={cn(
+                "relative isolate inline-flex h-10 items-center justify-center overflow-hidden rounded-full px-4 py-2 text-sm font-semibold tracking-[-0.01em] transition-[transform,box-shadow,background-color,border-color,color,filter] duration-350 ease-spring motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                "before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:bg-[radial-gradient(120%_120%_at_50%_0%,rgba(255,255,255,0.28)_0%,transparent_60%)] before:opacity-80",
+                "border border-border/20 bg-panel/55 text-text shadow-plush hover:bg-panel/70 active:translate-y-[1px]",
+              )}
+            >
+              Not now
+            </Link>
+            <Button variant="ghost" onClick={refreshStatus} className="h-10">
+              Refresh status
             </Button>
             <Button onClick={() => setStep("paste")} className="h-10">
               I have the response
@@ -213,7 +191,7 @@ export function OnboardingWizard({
                     const res = await importOnboardingSeedDumpAction({ rawText });
                     setImportResult(res);
                     await refreshStatus();
-                    setStep("done");
+                    setStep("connect");
                   } catch (err) {
                     setError(err instanceof Error ? err.message : "Import failed.");
                   }
@@ -222,10 +200,45 @@ export function OnboardingWizard({
               disabled={isPending || rawText.trim().length < 40}
               className="h-10"
             >
-              {isPending ? "Importing…" : "Import & Finish"}
+              {isPending ? "Importing…" : "Import & Continue"}
             </Button>
           </div>
         </Panel>
+      ) : null}
+
+      {step === "connect" ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ConnectPolymarketAccount />
+          <ConnectKalshiAccount />
+
+          <Panel className="lg:col-span-2 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-muted">
+                Continue once at least one account is connected.
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={refreshStatus}
+                  disabled={isPending}
+                  className="h-10"
+                >
+                  Refresh
+                </Button>
+                <Button
+                  onClick={async () => {
+                    await refreshStatus();
+                    setStep("done");
+                  }}
+                  disabled={!status.connected}
+                  className="h-10"
+                >
+                  Finish
+                </Button>
+              </div>
+            </div>
+          </Panel>
+        </div>
       ) : null}
 
       {step === "done" ? (
@@ -253,4 +266,3 @@ export function OnboardingWizard({
     </div>
   );
 }
-
