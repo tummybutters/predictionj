@@ -25,3 +25,9 @@ export function randomSuffix(): string {
   return Math.random().toString(36).slice(2, 8);
 }
 
+export function isDefaultHandle(handle: string | null | undefined): boolean {
+  const h = normalizeHandle(handle ?? "");
+  if (!h || h === "obj") return true;
+  if (h.startsWith("new-")) return true;
+  return ["note", "belief", "prediction", "framework", "data"].includes(h);
+}

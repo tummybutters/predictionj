@@ -4,9 +4,10 @@ import * as React from "react";
 
 import type { TruthObjectRow } from "@/db/truth_objects";
 import { cn } from "@/lib/cn";
+import { isDefaultHandle, normalizeHandle } from "@/lib/handles";
 import { Pill } from "@/components/ui/pill";
 import { InsetPanel, Panel } from "@/components/ui/panel";
-import { updateTruthObjectAction } from "@/app/journal/_actions/truth-objects";
+import { suggestHandleAction, updateTruthObjectAction } from "@/app/journal/_actions/truth-objects";
 
 type Outcome = { key: string; label: string };
 
@@ -106,6 +107,12 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
   const [sourcesText, setSourcesText] = React.useState((parsed.resolution?.source_urls ?? []).join("\n"));
 
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [handle, setHandle] = React.useState(object.handle ?? "");
+  const [handleState, setHandleState] = React.useState<"idle" | "loading" | "error">("idle");
+  const [editingHandle, setEditingHandle] = React.useState(false);
+  const [handleDraft, setHandleDraft] = React.useState(object.handle ?? "");
+  const [handleError, setHandleError] = React.useState<string | null>(null);
+  const autoHandleRef = React.useRef(false);
   const saveSeq = React.useRef(0);
 
   React.useEffect(() => {
@@ -120,6 +127,12 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
     setCriteria(next.resolution?.criteria ?? "");
     setSourcesText((next.resolution?.source_urls ?? []).join("\n"));
     setSaveState("idle");
+    setHandle(object.handle ?? "");
+    setHandleState("idle");
+    setEditingHandle(false);
+    setHandleDraft(object.handle ?? "");
+    setHandleError(null);
+    autoHandleRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [object.id]);
 
@@ -179,6 +192,62 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
     return () => window.clearTimeout(handle);
   }, [body, closeAt, criteria, object.id, object.metadata, probability, question, sources, title]);
 
+  React.useEffect(() => {
+    if (autoHandleRef.current) return;
+    if (!isDefaultHandle(handle)) return;
+    const seed = (question || title).trim();
+    if (seed.length < 3) return;
+
+    const t = window.setTimeout(async () => {
+      autoHandleRef.current = true;
+      setHandleState("loading");
+      try {
+        const res = await suggestHandleAction({ id: object.id, seed });
+        setHandle(res.handle);
+        setHandleDraft(res.handle);
+        setHandleState("idle");
+      } catch {
+        setHandleState("error");
+        window.setTimeout(() => setHandleState("idle"), 1200);
+      }
+    }, 800);
+
+    return () => window.clearTimeout(t);
+  }, [handle, object.id, question, title]);
+
+  async function regenerateHandle() {
+    autoHandleRef.current = true;
+    setHandleState("loading");
+    try {
+      const seed = (question || title).trim();
+      const res = await suggestHandleAction({ id: object.id, seed });
+      setHandle(res.handle);
+      setHandleDraft(res.handle);
+      setHandleState("idle");
+    } catch {
+      setHandleState("error");
+      window.setTimeout(() => setHandleState("idle"), 1400);
+    }
+  }
+
+  async function saveHandle() {
+    const next = normalizeHandle(handleDraft);
+    if (!next) return;
+    setHandleState("loading");
+    setHandleError(null);
+    try {
+      await updateTruthObjectAction({ id: object.id, patch: { handle: next } });
+      setHandle(next);
+      setEditingHandle(false);
+      setHandleState("idle");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Handle update failed";
+      setHandleError(message);
+      setHandleState("error");
+      window.setTimeout(() => setHandleState("idle"), 1400);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Panel className="p-6">
@@ -187,8 +256,36 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
             <div className="text-xs text-muted">Prediction</div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Pill className="px-2 py-1 font-mono text-[11px] text-text/80" tone="neutral">
-                @{object.handle}
+                @{handle}
               </Pill>
+              <button
+                type="button"
+                onClick={regenerateHandle}
+                disabled={handleState === "loading"}
+                className={cn(
+                  "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider shadow-plush transition",
+                  handleState === "loading"
+                    ? "border-border/15 bg-panel/40 text-muted"
+                    : "border-border/20 bg-panel/55 text-text/70 hover:bg-panel/70",
+                )}
+                aria-live="polite"
+              >
+                {handleState === "loading" ? "Naming…" : handleState === "error" ? "Try again" : "AI"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingHandle((v) => !v);
+                  setHandleDraft(handle);
+                  setHandleError(null);
+                }}
+                className={cn(
+                  "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider shadow-plush transition",
+                  "border-border/20 bg-panel/55 text-text/70 hover:bg-panel/70",
+                )}
+              >
+                Edit
+              </button>
               <Pill tone="accent" className="px-2 py-1 font-mono text-[11px]">
                 {formatPercent(clamp01(probability))}
               </Pill>
@@ -319,6 +416,39 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
           </div>
         </div>
       </Panel>
+
+      {editingHandle ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            value={handleDraft}
+            onChange={(e) => setHandleDraft(e.target.value)}
+            className={cn(
+              "h-9 w-56 rounded-xl border border-border/20 bg-panel2/35 px-3 text-xs font-mono text-text/85 outline-none shadow-plush",
+              "placeholder:text-muted/60 focus:border-accent/35 focus:ring-2 focus:ring-accent/15",
+            )}
+            placeholder="short-handle"
+          />
+          <button
+            type="button"
+            onClick={saveHandle}
+            className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white shadow-plush hover:brightness-105"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingHandle(false);
+              setHandleDraft(handle);
+              setHandleError(null);
+            }}
+            className="rounded-xl border border-border/20 bg-panel/55 px-3 py-2 text-xs font-semibold text-text/70 hover:bg-panel/70"
+          >
+            Cancel
+          </button>
+          {handleError ? <span className="text-xs text-rose-300">{handleError}</span> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
