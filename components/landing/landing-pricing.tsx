@@ -45,8 +45,7 @@ function TierCard({
     <section
       className={cn(
         "relative rounded-3xl border border-white/45 bg-white/18 p-7 shadow-[0_28px_90px_rgba(0,0,0,0.16)] backdrop-blur-xl",
-        highlighted &&
-          "border-black/10 bg-white/26 shadow-[0_34px_110px_rgba(0,0,0,0.20)]",
+        highlighted && "border-black/10 bg-white/26 shadow-[0_34px_110px_rgba(0,0,0,0.20)]",
       )}
     >
       {highlighted && (
@@ -60,12 +59,8 @@ function TierCard({
             {name.toUpperCase()}
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <div className="text-4xl font-semibold tracking-[-0.03em] text-black/90">
-              {price}
-            </div>
-            {price !== "$0" && (
-              <div className="text-sm font-medium text-black/45">/ month</div>
-            )}
+            <div className="text-4xl font-semibold tracking-[-0.03em] text-black/90">{price}</div>
+            {price !== "$0" && <div className="text-sm font-medium text-black/45">/ month</div>}
           </div>
           <p className="mt-3 text-sm leading-relaxed text-black/60">{tagline}</p>
         </div>
@@ -197,26 +192,19 @@ export function LandingPricingSections() {
         id="faq"
         className="mt-16 scroll-mt-28 rounded-3xl border border-white/45 bg-white/14 p-8 shadow-[0_28px_90px_rgba(0,0,0,0.14)] backdrop-blur-xl"
       >
-        <h2 className="text-lg font-semibold tracking-[-0.01em] text-black/85">
-          FAQ
-        </h2>
+        <h2 className="text-lg font-semibold tracking-[-0.01em] text-black/85">FAQ</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div>
-            <div className="text-sm font-semibold text-black/80">
-              Can I start free?
-            </div>
+            <div className="text-sm font-semibold text-black/80">Can I start free?</div>
             <p className="mt-2 text-sm leading-relaxed text-black/60">
-              Yes. Free is designed to be useful on its own, and you can upgrade
-              later if you want deeper calibration and exports.
+              Yes. Free is designed to be useful on its own, and you can upgrade later if you want
+              deeper calibration and exports.
             </p>
           </div>
           <div>
-            <div className="text-sm font-semibold text-black/80">
-              Do I need a credit card?
-            </div>
+            <div className="text-sm font-semibold text-black/80">Do I need a credit card?</div>
             <p className="mt-2 text-sm leading-relaxed text-black/60">
-              Not for sign-up. Billing and plan selection live inside the
-              product when enabled.
+              Not for sign-up. Billing and plan selection live inside the product when enabled.
             </p>
           </div>
         </div>
@@ -226,9 +214,7 @@ export function LandingPricingSections() {
         id="contact"
         className="mt-8 scroll-mt-28 rounded-3xl border border-white/45 bg-white/14 p-8 shadow-[0_28px_90px_rgba(0,0,0,0.14)] backdrop-blur-xl"
       >
-        <h2 className="text-lg font-semibold tracking-[-0.01em] text-black/85">
-          Contact us
-        </h2>
+        <h2 className="text-lg font-semibold tracking-[-0.01em] text-black/85">Contact us</h2>
         <p className="mt-3 text-sm leading-relaxed text-black/60">
           Want Max for a team, or have a question? Email{" "}
           <a

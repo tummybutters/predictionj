@@ -1,6 +1,6 @@
 import "server-only";
 import crypto from "crypto";
-import { getPolymarketAccount } from "./accounts";
+import { getPolymarketAccount } from "@/db/polymarket_accounts";
 
 const CLOB_HOST = "https://clob.polymarket.com";
 
@@ -42,7 +42,9 @@ async function clobFetch<T>(pathAndQuery: string, init?: RequestInit): Promise<T
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`CLOB request failed (${res.status}) for ${url}${text ? `: ${text.slice(0, 180)}` : ""}`);
+    throw new Error(
+      `CLOB request failed (${res.status}) for ${url}${text ? `: ${text.slice(0, 180)}` : ""}`,
+    );
   }
 
   return (await res.json()) as T;
@@ -76,13 +78,13 @@ async function authenticatedClobFetch<T>(
   const res = await fetch(url, {
     method,
     headers: {
-      "POLY_ADDRESS": account.poly_address,
-      "POLY_SIGNATURE": signature,
-      "POLY_TIMESTAMP": String(timestamp),
-      "POLY_API_KEY": account.api_key,
-      "POLY_PASSPHRASE": account.api_passphrase,
+      POLY_ADDRESS: account.poly_address,
+      POLY_SIGNATURE: signature,
+      POLY_TIMESTAMP: String(timestamp),
+      POLY_API_KEY: account.api_key,
+      POLY_PASSPHRASE: account.api_passphrase,
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
@@ -90,7 +92,9 @@ async function authenticatedClobFetch<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`CLOB Auth request failed (${res.status}) for ${url}${text ? `: ${text.slice(0, 180)}` : ""}`);
+    throw new Error(
+      `CLOB Auth request failed (${res.status}) for ${url}${text ? `: ${text.slice(0, 180)}` : ""}`,
+    );
   }
 
   return (await res.json()) as T;
@@ -110,7 +114,9 @@ export type PricesHistoryParams =
   | { tokenId: string; interval: string }
   | { tokenId: string; startTs: number; endTs: number };
 
-export async function getPricesHistory(params: PricesHistoryParams): Promise<ClobPricesHistoryResponse> {
+export async function getPricesHistory(
+  params: PricesHistoryParams,
+): Promise<ClobPricesHistoryResponse> {
   const tokenId = params.tokenId.trim();
   if (!tokenId) throw new Error("tokenId is required");
 

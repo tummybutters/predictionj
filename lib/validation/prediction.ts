@@ -25,20 +25,29 @@ const resolveByInput = z
     return z.NEVER;
   });
 
-const confidenceInput = z.preprocess((v) => {
-  if (typeof v === "string") return v.trim().replace(/%$/, "");
-  return v;
-}, z.union([z.string().min(1), z.number()]));
+const confidenceInput = z.preprocess(
+  (v) => {
+    if (typeof v === "string") return v.trim().replace(/%$/, "");
+    return v;
+  },
+  z.union([z.string().min(1), z.number()]),
+);
 
-const stakeInput = z.preprocess((v) => {
-  if (typeof v === "string") return v.trim().replace(/,/g, "");
-  return v;
-}, z.union([z.string().min(1), z.number()]));
+const stakeInput = z.preprocess(
+  (v) => {
+    if (typeof v === "string") return v.trim().replace(/,/g, "");
+    return v;
+  },
+  z.union([z.string().min(1), z.number()]),
+);
 
-const lineInput = z.preprocess((v) => {
-  if (typeof v === "string") return v.trim().replace(/%$/, "");
-  return v;
-}, z.union([z.string().min(1), z.number()]));
+const lineInput = z.preprocess(
+  (v) => {
+    if (typeof v === "string") return v.trim().replace(/%$/, "");
+    return v;
+  },
+  z.union([z.string().min(1), z.number()]),
+);
 
 export const predictionCreateSchema = z.object({
   question: z.string().trim().min(1).max(500),
@@ -58,25 +67,23 @@ export const predictionCreateSchema = z.object({
     }
     return normalized;
   }),
-  reference_line: lineInput
-    .optional()
-    .transform((v, ctx) => {
-      if (v === undefined || v === null || v === "") return 0.5;
-      const n = typeof v === "number" ? v : Number(v);
-      if (!Number.isFinite(n)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid line." });
-        return z.NEVER;
-      }
-      const normalized = n > 1 ? n / 100 : n;
-      if (normalized <= 0 || normalized >= 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Line must be between 0 and 1.",
-        });
-        return z.NEVER;
-      }
-      return normalized;
-    }),
+  reference_line: lineInput.optional().transform((v, ctx) => {
+    if (v === undefined || v === null || v === "") return 0.5;
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid line." });
+      return z.NEVER;
+    }
+    const normalized = n > 1 ? n / 100 : n;
+    if (normalized <= 0 || normalized >= 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Line must be between 0 and 1.",
+      });
+      return z.NEVER;
+    }
+    return normalized;
+  }),
   resolve_by: resolveByInput,
 });
 

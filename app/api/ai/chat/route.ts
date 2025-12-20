@@ -1,11 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
-import { ensureUser } from "@/services/auth/ensure-user";
-import { listEntries } from "@/services/journal";
-import { listOpen as listOpenPredictions } from "@/services/predictions";
-import { listUserBeliefs } from "@/services/beliefs";
-import { getDashboard, DashboardData } from "@/services/dashboard/get-dashboard";
+import { createIfMissing } from "@/db/users";
+import { countByType, listRecent, type TruthObjectRow } from "@/db/truth_objects";
+import { buildAiPortfolioContext } from "@/db/trading_mirror";
 import { derivePreview, getDisplayTitle } from "@/lib/journal";
 
 export const runtime = "nodejs";
@@ -47,67 +45,125 @@ function compactDate(s: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-function toContext({
-  dashboard,
-  journal,
-  predictions,
-  beliefs,
+function readFromMetadataString(obj: TruthObjectRow, path: string[]): string | null {
+  let curr: unknown = obj.metadata;
+  for (const key of path) {
+    if (!curr || typeof curr !== "object") return null;
+    curr = (curr as Record<string, unknown>)[key];
+  }
+  return typeof curr === "string" ? curr : null;
+}
+
+function readPredictionProbability(obj: TruthObjectRow): number | null {
+  if (!obj.metadata || typeof obj.metadata !== "object") return null;
+  const pos = (obj.metadata as Record<string, unknown>).position;
+  if (!pos || typeof pos !== "object") return null;
+  const cur = (pos as Record<string, unknown>).current_probability;
+  const init = (pos as Record<string, unknown>).initial_probability;
+  const n = typeof cur === "number" ? cur : typeof init === "number" ? init : null;
+  if (n == null || !Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(1, n));
+}
+
+function objectSearchText(obj: TruthObjectRow): string {
+  const parts: string[] = [];
+  if (obj.handle) parts.push(obj.handle);
+  if (obj.title) parts.push(obj.title);
+  if (obj.body) parts.push(obj.body);
+  if (obj.type === "belief") {
+    const st = readFromMetadataString(obj, ["statement"]);
+    if (st) parts.push(st);
+  }
+  if (obj.type === "prediction") {
+    const q = readFromMetadataString(obj, ["market", "question"]);
+    if (q) parts.push(q);
+    const c = readFromMetadataString(obj, ["resolution", "criteria"]);
+    if (c) parts.push(c);
+  }
+  return parts.join("\n");
+}
+
+function formatObjectLine(obj: TruthObjectRow): string {
+  const title = getDisplayTitle(obj);
+  const updated = compactDate(obj.updated_at);
+  const ref = `@${obj.handle}`;
+
+  if (obj.type === "belief") {
+    const statement = readFromMetadataString(obj, ["statement"]) ?? "";
+    const pct = obj.confidence != null ? Math.round(obj.confidence * 100) : null;
+    return `- [belief:${obj.id}] ${ref} (${updated}) ${pct != null ? `conf=${pct}%` : ""} ${statement || title}`;
+  }
+
+  if (obj.type === "prediction") {
+    const question = readFromMetadataString(obj, ["market", "question"]) ?? title;
+    const p = readPredictionProbability(obj);
+    const closeAt = readFromMetadataString(obj, ["timing", "close_at"]);
+    return `- [prediction:${obj.id}] ${ref} (${updated}) p=${p != null ? Math.round(p * 100) : "—"}%${
+      closeAt ? ` close=${closeAt}` : ""
+    } ${question}`;
+  }
+
+  const preview = derivePreview(obj.body).slice(0, 220);
+  const label = obj.type === "note" ? "note" : obj.type;
+  return `- [${label}:${obj.id}] ${ref} (${updated}) ${title}${preview ? `: ${preview}` : ""}`;
+}
+
+function toContextV2({
+  counts,
+  relevant,
+  recentNotes,
+  recentBeliefs,
+  recentPredictions,
+  portfolioContext,
 }: {
-  dashboard: DashboardData;
-  journal: { id: string; title: string; entry_at: string; preview: string }[];
-  predictions: { id: string; claim: string; confidence: number; resolution_date: string }[];
-  beliefs: { id: string; statement: string; is_foundational: boolean }[];
+  counts: Record<string, number>;
+  relevant: TruthObjectRow[];
+  recentNotes: TruthObjectRow[];
+  recentBeliefs: TruthObjectRow[];
+  recentPredictions: TruthObjectRow[];
+  portfolioContext?: string;
 }): string {
   const stats = [
-    `Journal Entries: ${dashboard.quick_stats.journal_entries.all_time} total (${dashboard.quick_stats.journal_entries.last_7_days} in last 7d)`,
-    `Predictions: ${dashboard.quick_stats.predictions.open} open, ${dashboard.quick_stats.predictions.resolved} resolved`,
-  ].join("\n");
+    `Notes: ${counts.note ?? 0}`,
+    `Beliefs: ${counts.belief ?? 0}`,
+    `Predictions: ${counts.prediction ?? 0}`,
+    `Frameworks: ${counts.framework ?? 0}`,
+    `Data: ${counts.data ?? 0}`,
+  ].join(" • ");
 
-  const journalLines = journal.length
-    ? journal
-      .map(
-        (e) =>
-          `- [journal:${e.id}] ${e.title} (${compactDate(e.entry_at)}): ${e.preview}`,
-      )
-      .join("\n")
+  const relevantLines = relevant.length ? relevant.map(formatObjectLine).join("\n") : "- (none)";
+  const notesLines = recentNotes.length ? recentNotes.map(formatObjectLine).join("\n") : "- (none)";
+  const beliefLines = recentBeliefs.length
+    ? recentBeliefs.map(formatObjectLine).join("\n")
+    : "- (none)";
+  const predictionLines = recentPredictions.length
+    ? recentPredictions.map(formatObjectLine).join("\n")
     : "- (none)";
 
-  const predictionLines = predictions.length
-    ? predictions
-      .map(
-        (p) =>
-          `- [prediction:${p.id}] ${p.claim} (p=${Math.round(p.confidence * 100)}%, due ${compactDate(
-            p.resolution_date,
-          )})`,
-      )
-      .join("\n")
-    : "- (none)";
-
-  const beliefLines = beliefs.length
-    ? beliefs
-      .map(
-        (b) =>
-          `- [belief:${b.id}] ${b.statement}${b.is_foundational ? " (foundational)" : ""
-          }`,
-      )
-      .join("\n")
-    : "- (none)";
-
-  return [
+  const base = [
     "USER CONTEXT (private; only the user can see this):",
     "",
     "High-level Stats:",
     stats,
     "",
-    "Recent/Relevant Journal:",
-    journalLines,
+    "Most Relevant Objects (use @handle to reference):",
+    relevantLines,
     "",
-    "Open Predictions:",
-    predictionLines,
+    "Recent Notes:",
+    notesLines,
     "",
-    "Beliefs:",
+    "Recent Beliefs:",
     beliefLines,
+    "",
+    "Recent Predictions:",
+    predictionLines,
   ].join("\n");
+
+  if (portfolioContext && portfolioContext.trim()) {
+    return `${base}\n\nMarket Account Context:\n${portfolioContext.trim()}`;
+  }
+
+  return base;
 }
 
 type RateLimitState = { windowStartMs: number; count: number };
@@ -134,7 +190,9 @@ function checkRateLimit(key: string): { allowed: boolean; retryAfterSeconds: num
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
-async function streamGeminiText(messages: { role: string; content: string; thoughtSignature?: string }[]): Promise<Response> {
+async function streamGeminiText(
+  messages: { role: string; content: string; thoughtSignature?: string }[],
+): Promise<Response> {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) {
     return new Response("Missing GOOGLE_AI_API_KEY on server.", { status: 500 });
@@ -258,54 +316,35 @@ export async function POST(req: Request) {
   const parsed = BodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return new Response("Invalid request", { status: 400 });
 
-  const ensured = await ensureUser();
+  const provider = (process.env.AI_PROVIDER ?? "gemini").toLowerCase();
+  if (provider !== "gemini") {
+    return new Response(`Unsupported AI_PROVIDER: ${provider}`, { status: 500 });
+  }
 
-  const lastUser = [...parsed.data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  const ensured = await createIfMissing(userId);
+
+  const lastUser =
+    [...parsed.data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
   const terms = tokenize(lastUser);
 
-  const [dashboard, journalEntries, predictions, beliefs] = await Promise.all([
-    getDashboard(),
-    listEntries(ensured.user_id, { limit: 200 }),
-    listOpenPredictions(ensured.user_id, { limit: 200 }),
-    listUserBeliefs(ensured.user_id, { limit: 80 }),
+  const [counts, objects] = await Promise.all([
+    countByType(ensured.id),
+    listRecent(ensured.id, { limit: 420 }),
   ]);
 
-  const relevantJournal = journalEntries
-    .map((e) => {
-      const title = getDisplayTitle(e);
-      const preview = derivePreview(e.body);
-      const score = scoreText(`${title}\n${preview}\n${e.body}`, terms) + scoreText(title, terms) * 2;
-      return { e, title, preview, score };
-    })
+  const relevant = objects
+    .map((o) => ({
+      o,
+      score: scoreText(objectSearchText(o), terms) + scoreText(o.handle, terms) * 3,
+    }))
+    .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 15) // Increased contextual items
-    .map(({ e, title, preview }) => ({
-      id: e.id,
-      title,
-      entry_at: e.entry_at,
-      preview: preview.slice(0, 300),
-    }));
+    .slice(0, 18)
+    .map((x) => x.o);
 
-  const relevantPredictions = predictions
-    .map((p) => ({ p, score: scoreText(p.claim, terms) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 15)
-    .map(({ p }) => ({
-      id: p.id,
-      claim: p.claim,
-      confidence: p.confidence,
-      resolution_date: p.resolution_date,
-    }));
-
-  const relevantBeliefs = beliefs
-    .map((b) => ({ b, score: scoreText(b.statement, terms) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
-    .map(({ b }) => ({
-      id: b.id,
-      statement: b.statement,
-      is_foundational: b.is_foundational,
-    }));
+  const recentNotes = objects.filter((o) => o.type === "note").slice(0, 8);
+  const recentBeliefs = objects.filter((o) => o.type === "belief").slice(0, 8);
+  const recentPredictions = objects.filter((o) => o.type === "prediction").slice(0, 8);
 
   const systemPrompt = `
 # Identity
@@ -326,24 +365,23 @@ Your goal is to turn simple thoughts into robust frameworks. When the user share
 # Formatting & Spacing
 - **Visual Breathing Room**: Use Markdown headers (##) and bolding for key terms.
 - **Satisfying White Space**: Use double line breaks between paragraphs.
-- **Citations**: Weave references like [journal:<id>] or [prediction:<id>] naturally into your sentences (e.g., "This seems to stem from your observation in [journal:123]...").
+- **Citations**: Weave references like [note:<id>] / [belief:<id>] / [prediction:<id>] and @handles naturally into your sentences.
 
 # Contextual Awareness
-You have access to:
-- **High-level Stats**: Broad totals and trends.
-- **Recent Journal Entries**: The "raw feed" of their daily experiences.
-- **Open Predictions**: The "bets" they are tracking.
-- **Beliefs**: The "bedrock" of their philosophy.
+You have access to the user's **truth objects** (notes, beliefs, predictions, frameworks, data) plus their @handles. Prefer reusing and linking prior thinking instead of asking the user to restate it.
 
 # Internal Reasoning
 You are Gemini 3, a state-of-the-art reasoning model. Use your thinking process to provide deep, high-quality analysis. Aim to make the USER feel smarter by the end of the conversation.
 `;
 
-  const context = toContext({
-    dashboard,
-    journal: relevantJournal,
-    predictions: relevantPredictions,
-    beliefs: relevantBeliefs,
+  const portfolioContext = await buildAiPortfolioContext(ensured.id).catch(() => "");
+  const context = toContextV2({
+    counts,
+    relevant,
+    recentNotes,
+    recentBeliefs,
+    recentPredictions,
+    portfolioContext,
   });
 
   const finalMessages = [

@@ -1,24 +1,30 @@
 import { revalidatePath } from "next/cache";
 
 import { ensureUser } from "@/services/auth/ensure-user";
-import { createEntry, listEntries } from "@/services/journal";
+import { create, listByType } from "@/db/truth_objects";
 import { PageHeader } from "@/components/app/page-header";
 import { Section } from "@/components/app/section";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
+import { normalizeHandle } from "@/lib/handles";
 
 async function createDbSmokeEntryAction() {
   "use server";
   const ensured = await ensureUser();
-  await createEntry(ensured.user_id, {
-    body: `db-smoke: ${new Date().toISOString()}`,
+  const body = `db-smoke: ${new Date().toISOString()}`;
+  await create(ensured.user_id, {
+    type: "note",
+    title: "db-smoke",
+    body,
+    handle: normalizeHandle(`db-smoke-${new Date().toISOString().slice(0, 10)}`),
+    metadata: {},
   });
   revalidatePath("/dev/db-smoke");
 }
 
 export default async function DbSmokePage() {
   const ensured = await ensureUser();
-  const entries = await listEntries(ensured.user_id, { limit: 5 });
+  const entries = await listByType(ensured.user_id, "note", { limit: 5 });
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
@@ -26,8 +32,7 @@ export default async function DbSmokePage() {
         title="DB Smoke Test"
         subtitle={
           <>
-            Ensured user{" "}
-            <span className="font-mono text-text/80">{ensured.user_id}</span> (clerk{" "}
+            Ensured user <span className="font-mono text-text/80">{ensured.user_id}</span> (clerk{" "}
             <span className="font-mono text-text/80">{ensured.clerk_user_id}</span>)
           </>
         }
@@ -47,10 +52,8 @@ export default async function DbSmokePage() {
             {entries.map((e) => (
               <li key={e.id}>
                 <InsetPanel className="rounded-2xl p-4">
-                  <div className="font-mono text-xs text-muted">{e.entry_at}</div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm text-text/85">
-                    {e.body}
-                  </div>
+                  <div className="font-mono text-xs text-muted">{e.created_at}</div>
+                  <div className="mt-2 whitespace-pre-wrap text-sm text-text/85">{e.body}</div>
                 </InsetPanel>
               </li>
             ))}

@@ -8,12 +8,7 @@ import { applyTheme, getInitialTheme, setStoredTheme } from "@/lib/theme";
 
 function SunIcon({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <path
         d="M12 17.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11Z"
         stroke="currentColor"
@@ -31,12 +26,7 @@ function SunIcon({ className }: { className?: string }) {
 
 function MoonIcon({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <path
         d="M20.5 14.8a7.8 7.8 0 0 1-10.4-10.3 9 9 0 1 0 10.4 10.3Z"
         stroke="currentColor"
@@ -93,4 +83,3 @@ export function ThemeToggle({ className }: { className?: string }) {
     </button>
   );
 }
-

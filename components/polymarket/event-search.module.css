@@ -60,7 +60,9 @@
   background: linear-gradient(to top right, rgba(var(--accent), 1), rgba(var(--accent), 0.72));
   border: 0;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 }
 
 .submitCompact {

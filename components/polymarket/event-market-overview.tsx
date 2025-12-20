@@ -89,7 +89,7 @@ function marketScore(m: GammaMarketLite): number {
 }
 
 function createPredictionHref(question: string, resolveBy?: string): string {
-  return `/predictions?prefill=${encodeURIComponent(question)}${
+  return `/journal/predictions?prefill=${encodeURIComponent(question)}${
     resolveBy ? `&resolve_by=${encodeURIComponent(resolveBy)}` : ""
   }`;
 }
@@ -100,13 +100,7 @@ async function fetchJson<T>(url: string, signal: AbortSignal): Promise<T> {
   return (await res.json()) as T;
 }
 
-function PriceLineChart({
-  points,
-  className,
-}: {
-  points: PricePoint[];
-  className?: string;
-}) {
+function PriceLineChart({ points, className }: { points: PricePoint[]; className?: string }) {
   const width = 640;
   const height = 180;
   const padX = 14;
@@ -115,7 +109,9 @@ function PriceLineChart({
   const safePoints = points.filter((p) => Number.isFinite(p.t) && Number.isFinite(p.p));
   if (safePoints.length < 2) {
     return (
-      <div className={cn("flex h-[180px] items-center justify-center text-sm text-muted", className)}>
+      <div
+        className={cn("flex h-[180px] items-center justify-center text-sm text-muted", className)}
+      >
         No chart data.
       </div>
     );
@@ -187,13 +183,17 @@ export function PolymarketEventMarketOverview({
     return markets.slice().sort((a, b) => marketScore(b) - marketScore(a));
   }, [markets]);
 
-  const [selectedMarketId, setSelectedMarketId] = React.useState<string>(() => sortedMarkets[0]?.id ?? "");
+  const [selectedMarketId, setSelectedMarketId] = React.useState<string>(
+    () => sortedMarkets[0]?.id ?? "",
+  );
   const selectedMarket = React.useMemo(
     () => sortedMarkets.find((m) => m.id === selectedMarketId) ?? sortedMarkets[0],
     [selectedMarketId, sortedMarkets],
   );
 
-  const resolveBy = toDateInputValue(selectedMarket?.endDateIso ?? selectedMarket?.endDate ?? eventEndDate);
+  const resolveBy = toDateInputValue(
+    selectedMarket?.endDateIso ?? selectedMarket?.endDate ?? eventEndDate,
+  );
   const marketQuestion = (selectedMarket?.question ?? eventTitle).trim() || eventTitle;
 
   const outcomes = React.useMemo(() => {
@@ -236,15 +236,13 @@ export function PolymarketEventMarketOverview({
       const tasks: Promise<void>[] = [];
       tasks.push(
         Promise.all(
-          tokenIds
-            .slice(0, outcomeCount)
-            .map(async (tokenId) => {
-              const data = await fetchJson<{ book: ClobBook }>(
-                `/api/polymarket/book?token_id=${encodeURIComponent(tokenId)}`,
-                controller.signal,
-              );
-              return [tokenId, data.book] as const;
-            }),
+          tokenIds.slice(0, outcomeCount).map(async (tokenId) => {
+            const data = await fetchJson<{ book: ClobBook }>(
+              `/api/polymarket/book?token_id=${encodeURIComponent(tokenId)}`,
+              controller.signal,
+            );
+            return [tokenId, data.book] as const;
+          }),
         ).then((pairs) => {
           setBooksByToken((prev) => {
             const next = { ...prev };
@@ -309,7 +307,7 @@ export function PolymarketEventMarketOverview({
       const mid =
         bid != null && ask != null && Number.isFinite(bid) && Number.isFinite(ask)
           ? (bid + ask) / 2
-          : bid ?? ask ?? null;
+          : (bid ?? ask ?? null);
       return { idx, tokenId, outcome, bid, ask, mid };
     });
   }, [booksByToken, outcomeCount, outcomes, tokenIds]);
@@ -338,16 +336,24 @@ export function PolymarketEventMarketOverview({
             ) : null}
             {selectedMarket.volume ? (
               <Pill className="px-2 py-1">
-                <span className="font-mono">Vol {toNumber(selectedMarket.volume).toLocaleString()}</span>
+                <span className="font-mono">
+                  Vol {toNumber(selectedMarket.volume).toLocaleString()}
+                </span>
               </Pill>
             ) : null}
             {selectedMarket.liquidity ? (
               <Pill className="px-2 py-1">
-                <span className="font-mono">Liq {toNumber(selectedMarket.liquidity).toLocaleString()}</span>
+                <span className="font-mono">
+                  Liq {toNumber(selectedMarket.liquidity).toLocaleString()}
+                </span>
               </Pill>
             ) : null}
             <span className="text-muted">
-              {status === "loading" ? "Updating…" : status === "error" ? "Live data unavailable" : "Live"}
+              {status === "loading"
+                ? "Updating…"
+                : status === "error"
+                  ? "Live data unavailable"
+                  : "Live"}
             </span>
           </div>
         </div>
@@ -373,7 +379,7 @@ export function PolymarketEventMarketOverview({
           <Link href={createPredictionHref(marketQuestion, resolveBy)}>
             <Button size="sm">Make prediction</Button>
           </Link>
-          <Link href={`/polymarket/markets/${encodeURIComponent(selectedMarket.slug)}`}>
+          <Link href={`/markets/markets/${encodeURIComponent(selectedMarket.slug)}`}>
             <Button variant="secondary" size="sm">
               Market
             </Button>
@@ -386,15 +392,11 @@ export function PolymarketEventMarketOverview({
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <div className="text-xs text-muted">Live probability</div>
-              <div className="mt-1 text-sm font-semibold text-text/90">
-                {selectedOutcomeLabel}
-              </div>
+              <div className="mt-1 text-sm font-semibold text-text/90">{selectedOutcomeLabel}</div>
             </div>
             <div className="flex items-center gap-2">
               <Pill className="px-2 py-1">
-                <span className="font-mono">
-                  {formatPercent(headline.last ?? null)}
-                </span>
+                <span className="font-mono">{formatPercent(headline.last ?? null)}</span>
               </Pill>
               <Pill className="px-2 py-1">
                 <span className="font-mono">
@@ -411,11 +413,7 @@ export function PolymarketEventMarketOverview({
         <InsetPanel className="rounded-2xl p-3 md:col-span-2">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-muted">Outcomes</div>
-            {outcomeCount ? (
-              <div className="text-xs text-muted">
-                Tap to chart
-              </div>
-            ) : null}
+            {outcomeCount ? <div className="text-xs text-muted">Tap to chart</div> : null}
           </div>
 
           {outcomeCount ? (
@@ -457,7 +455,7 @@ export function PolymarketEventMarketOverview({
         </InsetPanel>
       </div>
 
-      {(eventDescription || selectedMarket.description || tags?.length) ? (
+      {eventDescription || selectedMarket.description || tags?.length ? (
         <div className="mt-4">
           <details className="rounded-2xl border border-border/10 bg-panel/35 px-4 py-3">
             <summary className="cursor-pointer select-none text-sm font-medium text-text/85">

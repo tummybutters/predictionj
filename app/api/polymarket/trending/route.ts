@@ -12,4 +12,3 @@ export async function GET(request: Request) {
   const events = await listTrendingEvents(Number.isFinite(limit) ? limit : 5);
   return NextResponse.json({ events });
 }
-

@@ -44,7 +44,9 @@
   color: rgba(var(--text), 0.98);
   background: rgba(var(--panel), 0.9);
   border-color: rgba(var(--accent), 0.55);
-  box-shadow: var(--shadow-plush), inset 0 0 0 1px rgba(var(--accent), 0.18);
+  box-shadow:
+    var(--shadow-plush),
+    inset 0 0 0 1px rgba(var(--accent), 0.18);
 }
 
 .input {
@@ -75,7 +77,9 @@
   margin-left: 56px;
   background: rgba(var(--panel), 0.9);
   border-color: rgba(var(--accent), 0.55);
-  box-shadow: var(--shadow-glass), inset 0 0 0 1px rgba(var(--accent), 0.14);
+  box-shadow:
+    var(--shadow-glass),
+    inset 0 0 0 1px rgba(var(--accent), 0.14);
 }
 
 .input:focus ~ .modes,
@@ -102,7 +106,9 @@
   background: linear-gradient(to top right, rgba(var(--accent), 1), rgba(var(--accent), 0.72));
   border: 0;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 }
 
 .submit:hover {

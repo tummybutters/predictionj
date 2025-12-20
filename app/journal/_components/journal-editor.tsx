@@ -5,7 +5,7 @@ import * as React from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
-import type { JournalEntryRow } from "@/db/journal_entries";
+import type { TruthObjectRow } from "@/db/truth_objects";
 import { cn } from "@/lib/cn";
 import { deleteJournalEntryAction, saveJournalEntryDraftAction } from "@/app/journal/actions";
 import { derivePreview, deriveTitle, getDisplayTitle } from "@/lib/journal";
@@ -13,7 +13,7 @@ import { useJournalEntries } from "@/app/journal/_components/journal-shell";
 import styles from "@/app/journal/_components/journal-editor.module.css";
 
 type Props = {
-  entry: Pick<JournalEntryRow, "id" | "title" | "body" | "entry_at" | "updated_at">;
+  entry: Pick<TruthObjectRow, "id" | "title" | "body" | "created_at" | "updated_at" | "handle">;
 };
 
 type ComposerMenu =
@@ -70,13 +70,18 @@ function findComposerMenu(value: string, caret: number): ComposerMenu | null {
   return null;
 }
 
-function replaceRange(value: string, start: number, end: number, next: string): { value: string; caret: number } {
+function replaceRange(
+  value: string,
+  start: number,
+  end: number,
+  next: string,
+): { value: string; caret: number } {
   const v = value.slice(0, start) + next + value.slice(end);
   return { value: v, caret: start + next.length };
 }
 
 export function JournalEditor({ entry }: Props) {
-  const { entries, updateEntryLocal } = useJournalEntries();
+  const { mentionables, updateEntryLocal } = useJournalEntries();
   const [body, setBody] = React.useState(entry.body);
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
   const [menu, setMenu] = React.useState<ComposerMenu | null>(null);
@@ -97,12 +102,17 @@ export function JournalEditor({ entry }: Props) {
 
   const mentionOptions = React.useMemo(() => {
     const q = menu?.type === "mention" ? menu.query.trim() : "";
-    const pool = entries.filter((e) => e.id !== entry.id);
-    const filtered = q
-      ? pool.filter((e) => getDisplayTitle(e).toLowerCase().includes(q))
-      : pool;
-    return filtered.slice(0, 8);
-  }, [entries, entry.id, menu?.query, menu?.type]);
+    const pool = mentionables.filter((e) => e.id !== entry.id);
+    if (!q) return pool.slice(0, 10);
+    const lower = q.toLowerCase();
+    const filtered = pool.filter((o) => {
+      const t = (o.title ?? "").toLowerCase();
+      const b = (o.body ?? "").toLowerCase();
+      const h = (o.handle ?? "").toLowerCase();
+      return t.includes(lower) || b.includes(lower) || h.includes(lower);
+    });
+    return filtered.slice(0, 10);
+  }, [entry.id, mentionables, menu?.query, menu?.type]);
 
   const slashOptions = React.useMemo(() => {
     const q = menu?.type === "slash" ? menu.query.trim() : "";
@@ -110,7 +120,12 @@ export function JournalEditor({ entry }: Props) {
     return SLASH_COMMANDS.filter((c) => c.id.startsWith(q) || c.label.toLowerCase().includes(q));
   }, [menu?.query, menu?.type]);
 
-  const optionsCount = menu?.type === "slash" ? slashOptions.length : menu?.type === "mention" ? mentionOptions.length : 0;
+  const optionsCount =
+    menu?.type === "slash"
+      ? slashOptions.length
+      : menu?.type === "mention"
+        ? mentionOptions.length
+        : 0;
 
   function syncMenuFromCaret(nextValue: string) {
     const el = textareaRef.current;
@@ -141,8 +156,7 @@ export function JournalEditor({ entry }: Props) {
 
     const target = mentionOptions[index];
     if (!target) return;
-    const title = getDisplayTitle(target);
-    const inserted = `[[${title}]] `;
+    const inserted = `@${target.handle} `;
     const next = replaceRange(body, menu.start, menu.end, inserted);
     setBody(next.value);
     setMenu(null);
@@ -174,7 +188,11 @@ export function JournalEditor({ entry }: Props) {
         if (saveSeq.current !== seq) return;
         lastSavedBody.current = body;
         setSaveState("saved");
-        updateEntryLocal(entry.id, { title: result.title, updated_at: result.updated_at, body });
+        updateEntryLocal(entry.id, {
+          title: result.title ?? undefined,
+          updated_at: result.updated_at,
+          body,
+        });
       } catch {
         if (saveSeq.current !== seq) return;
         setSaveState("error");
@@ -226,17 +244,13 @@ export function JournalEditor({ entry }: Props) {
             <div className="truncate text-sm font-medium">
               {inferredTitle ?? (entry.title?.trim() ? entry.title : "Untitled")}
             </div>
-            <div className="mt-1 text-xs text-muted">{formatEntryAt(entry.entry_at)}</div>
+            <div className="mt-1 text-xs text-muted">{formatEntryAt(entry.created_at)}</div>
           </div>
 
           <div className="flex items-center gap-2">
             <Pill
               tone={
-                saveState === "saved"
-                  ? "positive"
-                  : saveState === "error"
-                    ? "danger"
-                    : "neutral"
+                saveState === "saved" ? "positive" : saveState === "error" ? "danger" : "neutral"
               }
               className={cn(
                 "px-2 py-1 font-mono text-[11px]",
@@ -282,7 +296,7 @@ export function JournalEditor({ entry }: Props) {
           {menu ? (
             <Panel className="absolute left-4 top-4 z-10 w-[min(360px,calc(100%-2rem))] border-border/15 bg-panel/80 p-2 shadow-glass backdrop-blur-md">
               <div className="px-2 pb-2 pt-1 text-xs text-muted">
-                {menu.type === "slash" ? "Commands" : "Link to an entry"}
+                {menu.type === "slash" ? "Commands" : "Link an object"}
               </div>
 
               <div className="space-y-1">
@@ -305,9 +319,7 @@ export function JournalEditor({ entry }: Props) {
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-text">
                               /{c.id}{" "}
-                              <span className="ml-1 text-xs font-normal text-muted">
-                                {c.label}
-                              </span>
+                              <span className="ml-1 text-xs font-normal text-muted">{c.label}</span>
                             </div>
                             <div className="mt-0.5 text-xs text-muted">{c.hint}</div>
                           </div>
@@ -316,7 +328,7 @@ export function JournalEditor({ entry }: Props) {
                     ))
                   )
                 ) : mentionOptions.length === 0 ? (
-                  <div className="px-2 py-2 text-sm text-muted">No entries found.</div>
+                  <div className="px-2 py-2 text-sm text-muted">No objects found.</div>
                 ) : (
                   mentionOptions.map((e, idx) => (
                     <button
@@ -329,10 +341,18 @@ export function JournalEditor({ entry }: Props) {
                         idx === menuIndex ? "bg-panel/70" : "hover:bg-panel/55",
                       )}
                     >
-                      <div className="truncate text-sm font-medium text-text">
-                        {getDisplayTitle(e)}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="truncate text-sm font-medium text-text">
+                          {getDisplayTitle(e)}
+                        </div>
+                        <div className="shrink-0 font-mono text-[11px] text-muted">
+                          @{e.handle}
+                        </div>
                       </div>
                       <div className="mt-0.5 truncate text-xs text-muted">
+                        <span className="mr-2 font-mono text-[11px] uppercase tracking-wider text-muted/80">
+                          {e.type}
+                        </span>
                         {derivePreview(e.body) || "Empty"}
                       </div>
                     </button>

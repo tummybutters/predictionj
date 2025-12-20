@@ -15,4 +15,3 @@ export async function GET(request: Request) {
   const book = await getBookByTokenId(tokenId);
   return NextResponse.json({ book });
 }
-

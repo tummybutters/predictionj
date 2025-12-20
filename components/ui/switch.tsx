@@ -41,7 +41,8 @@ export function Switch({
         "group relative inline-flex h-8 w-[68px] items-center rounded-full border border-border/20 bg-panel2/55 px-1 shadow-inset backdrop-blur-md transition-[transform,background-color,border-color,box-shadow] duration-350 ease-spring motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45",
         "hover:bg-panel2/70 active:translate-y-[1px]",
-        checked && "bg-[linear-gradient(90deg,rgba(var(--accent2),0.85),rgba(var(--accent),0.9),rgba(var(--accent3),0.85))] shadow-[var(--shadow-inset),0_20px_65px_rgba(0,0,0,0.14)]",
+        checked &&
+          "bg-[linear-gradient(90deg,rgba(var(--accent2),0.85),rgba(var(--accent),0.9),rgba(var(--accent3),0.85))] shadow-[var(--shadow-inset),0_20px_65px_rgba(0,0,0,0.14)]",
         disabled && "cursor-not-allowed opacity-60 hover:bg-panel2/55 active:translate-y-0",
         className,
       )}
@@ -61,14 +62,7 @@ export function Switch({
       </span>
 
       {name ? (
-        <input
-          type="checkbox"
-          name={name}
-          value={value}
-          checked={checked}
-          readOnly
-          hidden
-        />
+        <input type="checkbox" name={name} value={value} checked={checked} readOnly hidden />
       ) : null}
     </button>
   );

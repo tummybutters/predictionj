@@ -34,13 +34,7 @@ function Reveal({
   );
 }
 
-function Card({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={cn(
@@ -68,18 +62,12 @@ function Feature({
         {icon}
       </div>
       <div>
-        <div className="text-sm font-semibold tracking-[-0.01em] text-black/85">
-          {title}
-        </div>
-        <div className="mt-1 text-sm leading-relaxed text-black/60">
-          {description}
-        </div>
+        <div className="text-sm font-semibold tracking-[-0.01em] text-black/85">{title}</div>
+        <div className="mt-1 text-sm leading-relaxed text-black/60">{description}</div>
       </div>
     </div>
   );
 }
-
-
 
 function MiniMock({
   label,
@@ -99,14 +87,10 @@ function MiniMock({
           <span className="size-1.5 rounded-full bg-black/55" />
           {label}
         </div>
-        <div className="text-[11px] font-medium tracking-wide text-black/45">
-          {meta}
-        </div>
+        <div className="text-[11px] font-medium tracking-wide text-black/45">{meta}</div>
       </div>
       <div className="border-t border-black/10 px-4 py-4">
-        <div className="text-sm font-semibold tracking-[-0.01em] text-black/80">
-          {title}
-        </div>
+        <div className="text-sm font-semibold tracking-[-0.01em] text-black/80">{title}</div>
         <div className="mt-3 space-y-2">
           {lines.map((line) => (
             <div
@@ -137,9 +121,8 @@ export function LandingHomeSections() {
             Keep the model.
           </h2>
           <p className="mt-5 text-pretty text-base leading-relaxed text-black/60">
-            Log predictions with a confidence and a resolve date. Attach the
-            assumptions and sources behind them. Later, resolve the outcome and
-            see what actually held up.
+            Log predictions with a confidence and a resolve date. Attach the assumptions and sources
+            behind them. Later, resolve the outcome and see what actually held up.
           </p>
 
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
@@ -160,12 +143,10 @@ export function LandingHomeSections() {
         <div className="grid gap-6 md:col-span-7 md:grid-cols-2">
           <Reveal delay={0.05}>
             <Card>
-              <div className="text-sm font-semibold text-black/85">
-                Log a prediction
-              </div>
+              <div className="text-sm font-semibold text-black/85">Log a prediction</div>
               <p className="mt-2 text-sm leading-relaxed text-black/60">
-                Write the question, set a probability, choose a resolve date.
-                Fast enough to use daily.
+                Write the question, set a probability, choose a resolve date. Fast enough to use
+                daily.
               </p>
               <MiniMock
                 label="PREDICTION"
@@ -182,22 +163,16 @@ export function LandingHomeSections() {
 
           <Reveal delay={0.12}>
             <Card>
-              <div className="text-sm font-semibold text-black/85">
-                Track assumptions
-              </div>
+              <div className="text-sm font-semibold text-black/85">Track assumptions</div>
               <p className="mt-2 text-sm leading-relaxed text-black/60">
-                Split “belief” from “reason.” Update assumptions when they fail
-                so you don’t repeat the same mistake.
+                Split “belief” from “reason.” Update assumptions when they fail so you don’t repeat
+                the same mistake.
               </p>
               <MiniMock
                 label="ASSUMPTIONS"
                 meta="Model"
                 title="What needs to be true?"
-                lines={[
-                  "CPI trend keeps falling",
-                  "Labor stays resilient",
-                  "No new supply shock",
-                ]}
+                lines={["CPI trend keeps falling", "Labor stays resilient", "No new supply shock"]}
               />
             </Card>
           </Reveal>
@@ -214,8 +189,8 @@ export function LandingHomeSections() {
             Simple structure for consistent calibration.
           </h2>
           <p className="mt-5 text-pretty text-base leading-relaxed text-black/60">
-            Your notes stay lightweight. The system stays strict: timestamps,
-            probabilities, outcomes, and reviews you can actually trust.
+            Your notes stay lightweight. The system stays strict: timestamps, probabilities,
+            outcomes, and reviews you can actually trust.
           </p>
         </Reveal>
 
@@ -223,8 +198,7 @@ export function LandingHomeSections() {
           {[
             {
               title: "Probability-first",
-              description:
-                "Every belief gets a number. You can’t improve what you don’t quantify.",
+              description: "Every belief gets a number. You can’t improve what you don’t quantify.",
               icon: (
                 <svg
                   width="18"
@@ -379,12 +353,7 @@ export function LandingHomeSections() {
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
                 >
-                  <path
-                    d="M10 3v8"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
+                  <path d="M10 3v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                   <path
                     d="M7 8l3 3 3-3"
                     stroke="currentColor"

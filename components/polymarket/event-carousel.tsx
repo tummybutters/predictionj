@@ -221,20 +221,17 @@ export function PolymarketEventCarousel({
       ) : (
         items.map((e, idx) => {
           const resolveBy = toDateInputValue(e.endDate);
-          const createHref = `/predictions?prefill=${encodeURIComponent(e.title)}${
+          const createHref = `/journal/predictions?prefill=${encodeURIComponent(e.title)}${
             resolveBy ? `&resolve_by=${encodeURIComponent(resolveBy)}` : ""
           }`;
 
           return (
             <div
               key={`${e.id}-${idx}`}
-              className={cn(
-                thin,
-                "group flex min-w-[320px] items-center justify-between gap-3",
-              )}
+              className={cn(thin, "group flex min-w-[320px] items-center justify-between gap-3")}
             >
               <Link
-                href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
+                href={`/markets/events/${encodeURIComponent(e.slug)}`}
                 className="min-w-0 flex-1"
               >
                 <div className="line-clamp-1 text-sm font-medium group-hover:underline">

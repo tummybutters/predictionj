@@ -36,4 +36,3 @@ export function themeInitScript(defaultTheme: AppTheme) {
     safeDefault,
   )};}catch(e){}})();`;
 }
-

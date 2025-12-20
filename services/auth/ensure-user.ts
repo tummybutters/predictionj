@@ -1,6 +1,7 @@
 import "server-only";
 
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 import { createIfMissing } from "@/db/users";
 
@@ -13,7 +14,7 @@ export async function ensureUser(): Promise<EnsuredUser> {
   const { userId: clerkUserId } = await auth();
 
   if (!clerkUserId) {
-    throw new Error("Not signed in.");
+    redirect("/sign-in");
   }
 
   const user = await createIfMissing(clerkUserId);

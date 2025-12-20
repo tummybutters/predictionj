@@ -31,4 +31,3 @@ export function getDisplayTitle(entry: JournalEntryLike): string {
   if (explicit) return explicit;
   return deriveTitle(entry.body) ?? "Untitled";
 }
-

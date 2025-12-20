@@ -5,7 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import type { JournalEntryRow } from "@/db/journal_entries";
+import type { TruthObjectRow } from "@/db/truth_objects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
@@ -15,10 +15,12 @@ import { PageHeader } from "@/components/app/page-header";
 import { Panel } from "@/components/ui/panel";
 import { EmptyState } from "@/components/ui/empty-state";
 
-type EntryLite = Pick<JournalEntryRow, "id" | "title" | "body" | "entry_at" | "updated_at">;
+type EntryLite = Pick<TruthObjectRow, "id" | "title" | "body" | "created_at" | "updated_at" | "handle" | "type">;
+type MentionableLite = Pick<TruthObjectRow, "id" | "type" | "handle" | "title" | "body" | "updated_at">;
 
 type JournalEntriesContextValue = {
   entries: EntryLite[];
+  mentionables: MentionableLite[];
   updateEntryLocal: (id: string, patch: Partial<EntryLite>) => void;
 };
 
@@ -75,9 +77,11 @@ function mergeEntries(prev: EntryLite[], nextFromServer: EntryLite[]): EntryLite
 
 export function JournalShell({
   initialEntries,
+  mentionables,
   children,
 }: {
   initialEntries: EntryLite[];
+  mentionables: MentionableLite[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -91,9 +95,7 @@ export function JournalShell({
   }, [initialEntries]);
 
   const updateEntryLocal = React.useCallback((id: string, patch: Partial<EntryLite>) => {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...patch } : e)),
-    );
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   }, []);
 
   const filtered = React.useMemo(() => {
@@ -107,7 +109,7 @@ export function JournalShell({
   }, [entries, query]);
 
   return (
-    <JournalEntriesContext.Provider value={{ entries, updateEntryLocal }}>
+    <JournalEntriesContext.Provider value={{ entries, mentionables, updateEntryLocal }}>
       <div className="space-y-4">
         <PageHeader
           title="Journal"
@@ -118,7 +120,7 @@ export function JournalShell({
             </>
           }
           actions={
-            <Link href="/">
+            <Link href="/dashboard">
               <Button variant="secondary" size="sm">
                 Home
               </Button>
@@ -149,40 +151,40 @@ export function JournalShell({
                   <EmptyState className="rounded-2xl p-4">No matches.</EmptyState>
                 ) : (
                   <ol className="space-y-1">
-                    {filtered.map((e) => {
-                      const active = e.id === selectedId;
-                      const title = getDisplayTitle(e);
-                      const preview = derivePreview(e.body);
+                  {filtered.map((e) => {
+                    const active = e.id === selectedId;
+                    const title = getDisplayTitle(e);
+                    const preview = derivePreview(e.body);
 
-                      return (
-                        <li key={e.id}>
-                          <Link
-                            href={`/journal/${e.id}`}
-                            className={cn(
-                              "group block rounded-xl border px-3 py-2 transition-[transform,background-color,border-color,box-shadow] duration-350 ease-spring motion-reduce:transition-none",
-                              active
-                                ? "border-accent/35 bg-panel/75 shadow-glass"
-                                : "border-border/20 bg-panel/35 hover:border-accent/25 hover:bg-panel/55 hover:shadow-plush",
-                            )}
-                            aria-current={active ? "page" : undefined}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="truncate text-sm font-medium text-text">
-                                  {title}
-                                </div>
-                                <div className="mt-0.5 line-clamp-2 text-sm text-muted">
-                                  {preview || <span className="italic">Empty</span>}
-                                </div>
+                    return (
+                      <li key={e.id}>
+                        <Link
+                          href={`/journal/${e.id}`}
+                          className={cn(
+                            "group block rounded-xl border px-3 py-2 transition-[transform,background-color,border-color,box-shadow] duration-350 ease-spring motion-reduce:transition-none",
+                            active
+                              ? "border-accent/35 bg-panel/75 shadow-glass"
+                              : "border-border/20 bg-panel/35 hover:border-accent/25 hover:bg-panel/55 hover:shadow-plush",
+                          )}
+                          aria-current={active ? "page" : undefined}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-medium text-text">
+                                {title}
                               </div>
-                              <div className="shrink-0 font-mono text-[11px] text-muted">
-                                {formatDateCompact(e.entry_at)}
+                              <div className="mt-0.5 line-clamp-2 text-sm text-muted">
+                                {preview || <span className="italic">Empty</span>}
                               </div>
                             </div>
-                          </Link>
-                        </li>
-                      );
-                    })}
+                            <div className="shrink-0 font-mono text-[11px] text-muted">
+                              {formatDateCompact(e.created_at)}
+                            </div>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
                   </ol>
                 )}
               </div>

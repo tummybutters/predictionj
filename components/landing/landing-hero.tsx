@@ -6,8 +6,6 @@ import { LandingHomeSections } from "@/components/landing/landing-home-sections"
 import { LandingPricingSections } from "@/components/landing/landing-pricing";
 import { AnimatedButton } from "@/components/ui/animated-button";
 
-
-
 function FeatureChip({ children }: { children: React.ReactNode }) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-white/45 bg-white/18 px-3 py-1.5 text-xs font-medium tracking-wide text-black/70 shadow-[0_10px_35px_rgba(0,0,0,0.10)] backdrop-blur-md">
@@ -48,16 +46,13 @@ export function LandingHero() {
                 </div>
 
                 <h1 className="mt-10 text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.035em] text-black/90 sm:text-6xl md:text-7xl">
-                  <span className="block opacity-75">
-                    Your beliefs are assets.
-                  </span>
+                  <span className="block opacity-75">Your beliefs are assets.</span>
                   <span className="block">Track them like it.</span>
                 </h1>
 
                 <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-black/60 sm:text-lg">
-                  Log predictions, assumptions, and the models behind them.
-                  Watch your thinking become a system you can audit, calibrate,
-                  and trust.
+                  Log predictions, assumptions, and the models behind them. Watch your thinking
+                  become a system you can audit, calibrate, and trust.
                 </p>
 
                 <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">

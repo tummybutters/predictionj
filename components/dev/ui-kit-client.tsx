@@ -35,9 +35,7 @@ export function UiKitClient() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Panel className="p-5">
             <div className="text-sm font-semibold text-text/85">Panel</div>
-            <div className="mt-1 text-sm text-muted">
-              Raised surface for primary containers.
-            </div>
+            <div className="mt-1 text-sm text-muted">Raised surface for primary containers.</div>
           </Panel>
           <InsetPanel className="p-5">
             <div className="text-sm font-semibold text-text/85">InsetPanel</div>
@@ -91,4 +89,3 @@ export function UiKitClient() {
     </main>
   );
 }
-

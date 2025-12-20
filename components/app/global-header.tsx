@@ -2,161 +2,174 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { cn } from "@/lib/cn";
+import { GlossyTab } from "@/components/ui/glossy-tab";
 
-const navItemBase = cn(
-    "relative isolate rounded-full px-3 py-1.5 text-[12px] font-medium tracking-wide",
-    "transition-[transform,background-color,box-shadow,color] duration-150 ease-out",
-    "hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.98]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white/30",
-    "before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:opacity-0 before:transition-opacity before:duration-150 before:content-['']",
-    "before:bg-[radial-gradient(120%_120%_at_50%_0%,rgba(255,255,255,0.55)_0%,transparent_60%)]",
-    "hover:before:opacity-100",
-);
+type AppSectionKey = "markets" | "journal" | "overview" | null;
+
+function getSectionKey(pathname: string): AppSectionKey {
+  if (pathname === "/markets" || pathname.startsWith("/markets/")) return "markets";
+  if (pathname === "/journal" || pathname.startsWith("/journal/")) return "journal";
+  if (pathname === "/overview" || pathname.startsWith("/overview/")) return "overview";
+  return null;
+}
+
+const JOURNAL_SUBPAGES = new Set([
+  "beliefs",
+  "predictions",
+  "frameworks",
+  "data",
+  "bias-watchlist",
+]);
+
+function isGlossyTabActive(pathname: string, href: string): boolean {
+  if (href === "/journal") {
+    if (pathname === "/journal") return true;
+    if (!pathname.startsWith("/journal/")) return false;
+    const segment = pathname.split("/")[2] ?? "";
+    return segment.length > 0 && !JOURNAL_SUBPAGES.has(segment);
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+const SUBNAV: Record<Exclude<AppSectionKey, null>, Array<{ href: string; label: string }>> = {
+  markets: [
+    { href: "/markets", label: "Explore" },
+    { href: "/overview/portfolio", label: "Portfolio" },
+  ],
+  journal: [
+    { href: "/journal", label: "Entries" },
+    { href: "/journal/beliefs", label: "Beliefs" },
+    { href: "/journal/predictions", label: "Predictions" },
+    { href: "/journal/frameworks", label: "Frameworks" },
+    { href: "/journal/data", label: "Data" },
+    { href: "/journal/bias-watchlist", label: "Bias Watchlist" },
+  ],
+  overview: [
+    { href: "/overview", label: "Overview" },
+    { href: "/overview/portfolio", label: "Portfolio" },
+  ],
+};
 
 export function GlobalHeader() {
-    const pathname = usePathname();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-    return (
-        <header className="fixed left-0 right-0 top-6 z-[100] flex items-start justify-center px-6">
-            <nav
-                aria-label="Primary"
-                className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border border-white/45 bg-white/20 p-1.5",
-                    "shadow-[0_24px_85px_rgba(0,0,0,0.18)] backdrop-blur-2xl",
-                    "transition-[transform,box-shadow,background-color,border-color] duration-200 ease-out",
-                    "hover:shadow-[0_28px_105px_rgba(0,0,0,0.22)] hover:bg-white/22",
-                )}
-            >
-                {/* LOGGED OUT LINKS */}
-                <SignedOut>
-                    <Link
-                        href="/#pricing"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                        )}
-                    >
-                        Pricing
-                    </Link>
-                    <Link
-                        href="/"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                            pathname === "/" && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
-                        )}
-                    >
-                        Home
-                    </Link>
-                </SignedOut>
+  const [query, setQuery] = React.useState(() => searchParams.get("q") ?? "");
+  const sectionKey = getSectionKey(pathname);
 
-                {/* LOGGED IN LINKS */}
-                <SignedIn>
-                    <Link
-                        href="/"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                            pathname === "/" && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
-                        )}
-                    >
-                        Dashboard
-                    </Link>
-                    <Link
-                        href="/predictions"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                            pathname?.startsWith("/predictions") && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
-                        )}
-                    >
-                        Predictions
-                    </Link>
-                    <Link
-                        href="/journal"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                            pathname?.startsWith("/journal") && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
-                        )}
-                    >
-                        Journal
-                    </Link>
-                    <Link
-                        href="/polymarket"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                            pathname?.startsWith("/polymarket") && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
-                        )}
-                    >
-                        Polymarket
-                    </Link>
-                    <Link
-                        href="/ai"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                            pathname?.startsWith("/ai") && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
-                        )}
-                    >
-                        Assistant
-                    </Link>
-                    <Link
-                        href="/settings"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                            pathname?.startsWith("/settings") && "bg-white/45 text-black/90 shadow-[0_12px_45px_rgba(0,0,0,0.08)]",
-                        )}
-                    >
-                        Settings
-                    </Link>
-                </SignedIn>
+  React.useEffect(() => {
+    setQuery(searchParams.get("q") ?? "");
+  }, [searchParams]);
 
-                {/* SHARED / ACTION LINKS */}
-                <SignedOut>
-                    <Link
-                        href="/#faq"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                        )}
-                    >
-                        FAQ
-                    </Link>
-                    <Link
-                        href="/#contact"
-                        className={cn(
-                            navItemBase,
-                            "text-black/70 hover:bg-white/30 hover:text-black hover:shadow-[0_10px_35px_rgba(0,0,0,0.10)]",
-                        )}
-                    >
-                        Contact us
-                    </Link>
-                    <SignInButton mode="modal">
-                        <button
-                            className={cn(
-                                navItemBase,
-                                "bg-black/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.20)] hover:bg-black hover:shadow-[0_16px_50px_rgba(0,0,0,0.24)]",
-                            )}
-                        >
-                            Sign in
-                        </button>
-                    </SignInButton>
-                </SignedOut>
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) {
+      router.push("/markets");
+      return;
+    }
+    router.push(`/markets?q=${encodeURIComponent(q)}`);
+  }
 
-                <SignedIn>
-                    <div className="ml-1 flex items-center gap-2">
-                        <div className="rounded-full border border-white/50 bg-white/30 p-0.5 shadow-sm backdrop-blur-sm">
-                            <UserButton />
-                        </div>
-                    </div>
-                </SignedIn>
-            </nav>
-        </header>
-    );
+  const tabs = [
+    { href: "/dashboard", label: "Home" },
+    { href: "/markets", label: "Markets" },
+    { href: "/journal", label: "Journal" },
+    { href: "/overview", label: "Overview" },
+    { href: "/qortana", label: "Qortana" },
+  ] as const;
+
+  return (
+    <header className="sticky top-0 z-[100] overflow-visible border-b border-border/20 bg-bg/80 backdrop-blur-2xl">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-6">
+        <SignedOut>
+          <Link href="/" className="flex items-center gap-2">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-accent text-[11px] font-black tracking-tight text-white shadow-plush">
+              PJ
+            </span>
+          </Link>
+        </SignedOut>
+
+        <SignedIn>
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-accent text-[11px] font-black tracking-tight text-white shadow-plush">
+              PJ
+            </span>
+          </Link>
+        </SignedIn>
+
+        <form onSubmit={onSubmit} className="hidden flex-1 md:block">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search markets"
+            className={cn(
+              "h-9 w-full rounded-xl border border-border/20 bg-panel/45 px-4 text-sm text-text/85 outline-none shadow-plush",
+              "placeholder:text-muted/60 focus:border-accent/35 focus:ring-2 focus:ring-accent/20",
+            )}
+          />
+        </form>
+
+        <SignedIn>
+          <nav className="ml-auto flex items-center gap-5 text-sm font-medium text-muted">
+            {tabs.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn("transition-colors hover:text-text", isActive && "text-text")}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </SignedIn>
+
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-plush hover:brightness-105">
+              Log in
+            </button>
+          </SignInButton>
+        </SignedOut>
+
+        <SignedIn>
+          <Link
+            href="/settings"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-plush hover:brightness-105"
+          >
+            Connect
+          </Link>
+          <div className="ml-2 rounded-full border border-border/20 bg-panel/45 p-0.5 shadow-plush">
+            <UserButton />
+          </div>
+        </SignedIn>
+      </div>
+
+      <SignedIn>
+        {sectionKey ? (
+          <div className="border-t border-border/15 bg-bg/60">
+            <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 px-6 py-2">
+              {(SUBNAV[sectionKey] ?? []).map((item) => {
+                return (
+                  <GlossyTab
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    active={isGlossyTabActive(pathname, item.href)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </SignedIn>
+    </header>
+  );
 }

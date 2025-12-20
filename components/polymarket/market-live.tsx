@@ -27,7 +27,7 @@ type DataApiTrade = {
 };
 
 function formatPercent(p: string | number | undefined | null): string {
-  const n = typeof p === "string" ? Number(p) : p ?? NaN;
+  const n = typeof p === "string" ? Number(p) : (p ?? NaN);
   if (!Number.isFinite(n)) return "—";
   return `${Math.round(n * 100)}%`;
 }
@@ -41,7 +41,7 @@ function formatPpDelta(delta: number): string {
 }
 
 function formatPrice(p: string | number | undefined | null): string {
-  const n = typeof p === "string" ? Number(p) : p ?? NaN;
+  const n = typeof p === "string" ? Number(p) : (p ?? NaN);
   if (!Number.isFinite(n)) return "—";
   return n.toFixed(3);
 }
@@ -75,7 +75,9 @@ export function PolymarketMarketLive({
 }) {
   const [booksByToken, setBooksByToken] = React.useState<Record<string, ClobBook | undefined>>({});
   const [trades, setTrades] = React.useState<DataApiTrade[]>([]);
-  const [pricesByToken, setPricesByToken] = React.useState<Record<string, PricePoint[] | undefined>>({});
+  const [pricesByToken, setPricesByToken] = React.useState<
+    Record<string, PricePoint[] | undefined>
+  >({});
   const [status, setStatus] = React.useState<"idle" | "loading" | "error">("idle");
   const controllerRef = React.useRef<AbortController | null>(null);
   const lastPricesFetchAtRef = React.useRef(0);
@@ -200,7 +202,11 @@ export function PolymarketMarketLive({
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs text-muted">
-          {status === "loading" ? "Updating…" : status === "error" ? "Live data unavailable" : "Live data"}
+          {status === "loading"
+            ? "Updating…"
+            : status === "error"
+              ? "Live data unavailable"
+              : "Live data"}
         </div>
         <Button
           type="button"
@@ -224,9 +230,7 @@ export function PolymarketMarketLive({
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/10 bg-panel/40 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <div className="line-clamp-1 text-sm font-semibold text-text/85">
-                    {r.outcome}
-                  </div>
+                  <div className="line-clamp-1 text-sm font-semibold text-text/85">{r.outcome}</div>
                   <div className="mt-1 font-mono text-xs text-muted">
                     Bid {formatPercent(r.bestBid)} · Ask {formatPercent(r.bestAsk)}
                     {r.last?.price != null ? (
@@ -265,7 +269,9 @@ export function PolymarketMarketLive({
                       <span className="text-muted"> · </span>
                       <span className="text-text/85">{t.outcome ?? "—"}</span>
                       <span className="text-muted"> · </span>
-                      <span className="font-mono text-text/80">{formatPercent(t.price ?? null)}</span>
+                      <span className="font-mono text-text/80">
+                        {formatPercent(t.price ?? null)}
+                      </span>
                     </div>
                     <div className="shrink-0 font-mono text-muted">
                       {t.size != null && Number.isFinite(t.size) ? t.size.toFixed(2) : "—"}{" "}

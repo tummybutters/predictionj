@@ -36,4 +36,3 @@ export async function createIfMissing(
   if (error) throw error;
   return data;
 }
-

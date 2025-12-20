@@ -62,4 +62,3 @@ export async function listTradesByConditionId(params: {
     cache: "no-store",
   });
 }
-

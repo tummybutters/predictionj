@@ -11,14 +11,8 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <InsetPanel
-      className={cn(
-        "rounded-3xl border-dashed p-6 text-sm text-muted",
-        className,
-      )}
-    >
+    <InsetPanel className={cn("rounded-3xl border-dashed p-6 text-sm text-muted", className)}>
       {children}
     </InsetPanel>
   );
 }
-

@@ -4,40 +4,20 @@ import * as React from "react";
 
 import { cn } from "@/lib/cn";
 
-export type CheckboxProps = Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "type"
-> & {
+export type CheckboxProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
   label?: React.ReactNode;
   description?: React.ReactNode;
 };
 
-function CheckIcon({
-  className,
-  ...props
-}: React.SVGProps<SVGSVGElement>) {
+function CheckIcon({ className, ...props }: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      aria-hidden="true"
-      {...props}
-    >
-      <path
-        d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"
-        fill="currentColor"
-      />
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...props}>
+      <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z" fill="currentColor" />
     </svg>
   );
 }
 
-export function Checkbox({
-  className,
-  label,
-  description,
-  disabled,
-  ...props
-}: CheckboxProps) {
+export function Checkbox({ className, label, description, disabled, ...props }: CheckboxProps) {
   return (
     <label
       className={cn(
@@ -46,12 +26,7 @@ export function Checkbox({
         className,
       )}
     >
-      <input
-        type="checkbox"
-        disabled={disabled}
-        className="peer sr-only"
-        {...props}
-      />
+      <input type="checkbox" disabled={disabled} className="peer sr-only" {...props} />
 
       <span
         className={cn(

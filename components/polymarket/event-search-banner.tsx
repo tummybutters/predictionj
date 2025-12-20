@@ -72,17 +72,8 @@ function ChevronDownIcon(props: React.SVGProps<SVGSVGElement>) {
 function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M9 15a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M13.6 13.6 17 17"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+      <path d="M9 15a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M13.6 13.6 17 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -102,9 +93,7 @@ export function PolymarketEventSearchBanner({
   const [results, setResults] = React.useState<GammaEventLite[]>([]);
   const [searchStatus, setSearchStatus] = React.useState<"idle" | "loading" | "error">("idle");
   const [trendingStatus, setTrendingStatus] = React.useState<"idle" | "loading" | "error">("idle");
-  const [carouselOpen, setCarouselOpen] = React.useState(
-    defaultCarouselOpen ?? !compact,
-  );
+  const [carouselOpen, setCarouselOpen] = React.useState(defaultCarouselOpen ?? !compact);
   const [resultsOpen, setResultsOpen] = React.useState(false);
   const [hasSearched, setHasSearched] = React.useState(false);
 
@@ -209,17 +198,17 @@ export function PolymarketEventSearchBanner({
   const showResults = (hasQuery || hasSearched) && resultsOpen;
 
   return (
-    <Panel ref={rootRef} className={cn(compact ? "rounded-2xl p-3" : "rounded-3xl p-4", "!overflow-visible")}>
+    <Panel
+      ref={rootRef}
+      className={cn(compact ? "rounded-2xl p-3" : "rounded-3xl p-4", "!overflow-visible")}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs text-muted">Trending</div>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className={cn(
-            "p-0 text-muted hover:text-text",
-            compact ? "h-7 w-7" : "h-8 w-8",
-          )}
+          className={cn("p-0 text-muted hover:text-text", compact ? "h-7 w-7" : "h-8 w-8")}
           onClick={() => setCarouselOpen((v) => !v)}
           aria-label={carouselOpen ? "Hide trending carousel" : "Show trending carousel"}
           title={carouselOpen ? "Hide trending carousel" : "Show trending carousel"}
@@ -294,11 +283,15 @@ export function PolymarketEventSearchBanner({
               </div>
 
               {searchStatus === "error" ? (
-                <EmptyState className="rounded-2xl p-8">Couldn’t load results. Please try again.</EmptyState>
+                <EmptyState className="rounded-2xl p-8">
+                  Couldn’t load results. Please try again.
+                </EmptyState>
               ) : null}
 
               {searchStatus !== "loading" && results.length === 0 ? (
-                <EmptyState className="rounded-2xl p-8">No events found for &quot;{query}&quot;.</EmptyState>
+                <EmptyState className="rounded-2xl p-8">
+                  No events found for &quot;{query}&quot;.
+                </EmptyState>
               ) : null}
 
               {results.length > 0 ? (
@@ -313,7 +306,10 @@ export function PolymarketEventSearchBanner({
                     const e = results[i];
                     if (!e) {
                       return (
-                        <div key={`empty-${i}`} className="group relative flex flex-col h-full opacity-30 select-none">
+                        <div
+                          key={`empty-${i}`}
+                          className="group relative flex flex-col h-full opacity-30 select-none"
+                        >
                           <InsetPanel
                             className={cn(
                               "flex flex-col h-full rounded-2xl border-border/5 bg-panel/20",
@@ -331,7 +327,7 @@ export function PolymarketEventSearchBanner({
                       );
                     }
 
-                    const createHref = `/predictions?prefill=${encodeURIComponent(e.title)}`;
+                    const createHref = `/journal/predictions?prefill=${encodeURIComponent(e.title)}`;
 
                     return (
                       <div key={e.id} className="group relative flex flex-col h-full">
@@ -358,7 +354,7 @@ export function PolymarketEventSearchBanner({
                           )}
 
                           <Link
-                            href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
+                            href={`/markets/events/${encodeURIComponent(e.slug)}`}
                             className="flex-1"
                             onClick={() => setResultsOpen(false)}
                           >
@@ -375,7 +371,7 @@ export function PolymarketEventSearchBanner({
 
                           <div className="mt-auto flex items-center gap-1.5 pt-2 border-t border-border/5">
                             <Link
-                              href={`/polymarket/events/${encodeURIComponent(e.slug)}`}
+                              href={`/markets/events/${encodeURIComponent(e.slug)}`}
                               className="flex-1"
                               onClick={() => setResultsOpen(false)}
                             >
@@ -392,10 +388,7 @@ export function PolymarketEventSearchBanner({
                               aria-label="Make prediction"
                               className="shrink-0"
                             >
-                              <Button
-                                size="sm"
-                                className="h-7 w-7 p-0 rounded-lg shadow-sm"
-                              >
+                              <Button size="sm" className="h-7 w-7 p-0 rounded-lg shadow-sm">
                                 +
                               </Button>
                             </Link>

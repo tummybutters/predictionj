@@ -15,4 +15,3 @@ export async function GET(request: Request) {
   const events = await searchEvents(q);
   return NextResponse.json({ events });
 }
-

@@ -63,7 +63,9 @@ async function gammaFetch<T>(pathAndQuery: string, init?: RequestInit): Promise<
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Gamma request failed (${res.status}) for ${url}${text ? `: ${text.slice(0, 180)}` : ""}`);
+    throw new Error(
+      `Gamma request failed (${res.status}) for ${url}${text ? `: ${text.slice(0, 180)}` : ""}`,
+    );
   }
 
   return (await res.json()) as T;
@@ -103,10 +105,9 @@ export async function searchEvents(query: string): Promise<GammaEvent[]> {
   const q = query.trim();
   if (!q) return [];
 
-  const resp = await gammaFetch<PublicSearchResponse>(
-    `/public-search?q=${encodeURIComponent(q)}`,
-    { next: { revalidate: 15 } },
-  );
+  const resp = await gammaFetch<PublicSearchResponse>(`/public-search?q=${encodeURIComponent(q)}`, {
+    next: { revalidate: 15 },
+  });
 
   return resp.events ?? [];
 }
@@ -119,6 +120,17 @@ export async function getEventBySlug(slug: string): Promise<GammaEvent> {
 
 export async function getMarketBySlug(slug: string): Promise<GammaMarket> {
   return gammaFetch<GammaMarket>(`/markets/slug/${encodeURIComponent(slug)}`, {
+    next: { revalidate: 60 },
+  });
+}
+
+export async function listMarketsByTokenIds(tokenIds: string[]): Promise<GammaMarket[]> {
+  if (tokenIds.length === 0) return [];
+
+  const qs = new URLSearchParams();
+  tokenIds.forEach((id) => qs.append("clob_token_ids", id));
+
+  return gammaFetch<GammaMarket[]>(`/markets?${qs.toString()}`, {
     next: { revalidate: 60 },
   });
 }
