@@ -141,7 +141,6 @@ async function streamOpenAiText(prompt: string, model: string): Promise<Response
       model,
       input: prompt,
       stream: true,
-      temperature: 0.8,
       max_output_tokens: 900,
     }),
   });
@@ -287,7 +286,6 @@ async function inferDraftObjectsNano(input: string): Promise<{
     body: JSON.stringify({
       model,
       input: prompt,
-      temperature: 0.2,
       max_output_tokens: 420,
     }),
   });
