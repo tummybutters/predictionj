@@ -20,6 +20,7 @@ type UseStreamingChatOptions = {
   apiPath?: string;
   maxStoredMessages?: number;
   maxContextMessages?: number;
+  getExtraBody?: () => Record<string, unknown>;
 };
 
 function uid(): string {
@@ -61,6 +62,7 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
     apiPath = "/api/ai/chat",
     maxStoredMessages = 80,
     maxContextMessages = 24,
+    getExtraBody,
   } = options;
 
   const [messages, setMessages] = React.useState<ChatMessage[]>(() => []);
@@ -110,12 +112,17 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
         .slice(-maxContextMessages)
         .map(({ role, content }) => ({ role, content })),
     };
+    const extra = getExtraBody?.();
+    const finalPayload =
+      extra && typeof extra === "object" && Object.keys(extra).length
+        ? { ...payload, ...extra }
+        : payload;
 
     try {
       const res = await fetch(apiPath, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(finalPayload),
         signal: controller.signal,
       });
 
@@ -154,7 +161,7 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
       setIsSending(false);
       abortRef.current = null;
     }
-  }, [apiPath, clear, input, isSending, maxContextMessages, messages]);
+  }, [apiPath, clear, getExtraBody, input, isSending, maxContextMessages, messages]);
 
   return {
     messages,

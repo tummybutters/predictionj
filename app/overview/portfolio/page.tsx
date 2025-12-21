@@ -1,11 +1,15 @@
 import Link from "next/link";
 
+import { ensureUser } from "@/services/auth/ensure-user";
 import { getPortfolioData } from "@/services/trading/portfolio";
 import { getMirroredPortfolioData } from "@/services/trading/mirrored";
-import { syncTradingNow } from "@/services/trading/sync";
+import { syncTradingNowForUser } from "@/services/trading/sync";
 import { PositionsTable } from "@/components/portfolio/positions-table";
+import { OpenOrdersTable, type OpenOrder } from "@/components/portfolio/open-orders-table";
 import { cn } from "@/lib/cn";
 import { syncTradingNowAction } from "@/app/overview/portfolio/actions";
+import { createSupabaseServerClient } from "@/db/supabase/server";
+import { getTradingProviderPreference } from "@/lib/trading/provider";
 
 function formatUsd(n: number | null | undefined): string {
   if (n === null || n === undefined) return "—";
@@ -65,12 +69,14 @@ const ALLOC_COLORS: Record<string, string> = {
 };
 
 export default async function PortfolioPage() {
-  let mirrored = await getMirroredPortfolioData({ maxAgeSeconds: 120 }).catch(() => null);
+  const ensured = await ensureUser();
+  const pref = getTradingProviderPreference();
+  let mirrored = await getMirroredPortfolioData({ maxAgeSeconds: 120, preferredProvider: pref }).catch(() => null);
   if (!mirrored?.mirrored) {
-    await syncTradingNow().catch(() => null);
-    mirrored = await getMirroredPortfolioData({ maxAgeSeconds: 240 }).catch(() => null);
+    await syncTradingNowForUser(ensured.user_id, { preferredProvider: pref }).catch(() => null);
+    mirrored = await getMirroredPortfolioData({ maxAgeSeconds: 240, preferredProvider: pref }).catch(() => null);
   }
-  const data = mirrored?.mirrored ? mirrored : await getPortfolioData();
+  const data = mirrored?.mirrored ? mirrored : await getPortfolioData({ preferredProvider: pref });
 
   if (!data.provider) {
     return (
@@ -127,6 +133,46 @@ export default async function PortfolioPage() {
           Math.max(1, data.performance_30d[0]!.v)) *
         100
       : null;
+
+  const openOrders: OpenOrder[] = [];
+  try {
+    const supabase = createSupabaseServerClient();
+    const { data: rows } = await supabase
+      .from("trading_orders_current")
+      .select("provider, order_id, token_id, side, price, size, status, created_at, last_seen_at")
+      .eq("user_id", ensured.user_id)
+      .eq("provider", data.provider)
+      .order("last_seen_at", { ascending: false })
+      .limit(120);
+
+    const list = Array.isArray(rows) ? (rows as unknown[]) : [];
+    for (const row of list) {
+      const r = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
+      openOrders.push({
+        provider: String(r.provider ?? "") === "kalshi" ? "kalshi" : "polymarket",
+        order_id: String(r.order_id ?? ""),
+        token_id: r.token_id == null ? null : String(r.token_id),
+        side: r.side == null ? null : String(r.side),
+        price:
+          typeof r.price === "number"
+            ? r.price
+            : typeof r.price === "string" && Number.isFinite(Number(r.price))
+              ? Number(r.price)
+              : null,
+        size:
+          typeof r.size === "number"
+            ? r.size
+            : typeof r.size === "string" && Number.isFinite(Number(r.size))
+              ? Number(r.size)
+              : null,
+        status: r.status == null ? null : String(r.status),
+        created_at: r.created_at == null ? null : String(r.created_at),
+        last_seen_at: String(r.last_seen_at ?? ""),
+      });
+    }
+  } catch {
+    // ignore
+  }
 
   return (
     <main className="min-h-screen bg-bg px-6 pb-16 pt-8 text-text">
@@ -307,6 +353,7 @@ export default async function PortfolioPage() {
         </div>
 
         <PositionsTable positions={positions} />
+        {openOrders.length ? <OpenOrdersTable orders={openOrders} /> : null}
 
         <div className="space-y-3">
           <div className="text-sm font-semibold text-text/80">Suggested for You</div>

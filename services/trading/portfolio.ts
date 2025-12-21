@@ -349,7 +349,7 @@ async function getKalshiPortfolioData(internalUserId: string): Promise<Portfolio
   };
 }
 
-export async function getPortfolioData(): Promise<PortfolioData> {
+export async function getPortfolioData(options?: { preferredProvider?: Provider | "auto" }): Promise<PortfolioData> {
   const ensured = await ensureUser();
 
   const [poly, kalshi] = await Promise.all([
@@ -357,12 +357,22 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     getKalshiAccount(ensured.user_id).catch(() => null),
   ]);
 
-  if (poly) {
+  const pref = options?.preferredProvider ?? "auto";
+
+  if ((pref === "polymarket" || pref === "auto") && poly) {
     return getPolymarketPortfolio(ensured.user_id);
   }
 
-  if (kalshi) {
+  if ((pref === "kalshi" || pref === "auto") && kalshi) {
     return getKalshiPortfolioData(ensured.user_id);
+  }
+
+  // Fallback to the other provider if preference isn't connected.
+  if (pref === "polymarket" && kalshi) {
+    return getKalshiPortfolioData(ensured.user_id);
+  }
+  if (pref === "kalshi" && poly) {
+    return getPolymarketPortfolio(ensured.user_id);
   }
 
   return {

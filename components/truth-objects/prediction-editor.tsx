@@ -113,14 +113,17 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
   const [question, setQuestion] = React.useState(parsed.market?.question ?? "");
   const [probability, setProbability] = React.useState<number>(
     parsed.position?.current_probability ??
-      parsed.position?.initial_probability ??
-      0.5,
+    parsed.position?.initial_probability ??
+    0.5,
   );
   const [closeAt, setCloseAt] = React.useState(parsed.timing?.close_at ?? "");
   const [criteria, setCriteria] = React.useState(parsed.resolution?.criteria ?? "");
   const [sourcesText, setSourcesText] = React.useState((parsed.resolution?.source_urls ?? []).join("\n"));
 
-  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+  const isFirstMount = React.useRef(true);
+  const lastSavedRef = React.useRef({ title: object.title ?? "", body: object.body ?? "", question: parsed.market?.question ?? "", probability, closeAt, criteria, sourcesText });
+
+  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error" | "dirty">("idle");
   const [handle, setHandle] = React.useState(object.handle ?? "");
   const [handleState, setHandleState] = React.useState<"idle" | "loading" | "error">("idle");
   const [editingHandle, setEditingHandle] = React.useState(false);
@@ -129,26 +132,70 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
   const autoHandleRef = React.useRef(false);
   const saveSeq = React.useRef(0);
 
+  const activeIdRef = React.useRef(object.id);
+
+  // Reset dirty tracking and state when ID changes
   React.useEffect(() => {
-    const next = parseMetadata(object.metadata);
-    setTitle(object.title ?? "");
-    setBody(object.body ?? "");
-    setQuestion(next.market?.question ?? "");
-    setProbability(
-      next.position?.current_probability ?? next.position?.initial_probability ?? 0.5,
-    );
-    setCloseAt(next.timing?.close_at ?? "");
-    setCriteria(next.resolution?.criteria ?? "");
-    setSourcesText((next.resolution?.source_urls ?? []).join("\n"));
-    setSaveState("idle");
-    setHandle(object.handle ?? "");
-    setHandleState("idle");
-    setEditingHandle(false);
-    setHandleDraft(object.handle ?? "");
-    setHandleError(null);
-    autoHandleRef.current = false;
+    if (object.id !== activeIdRef.current) {
+      isFirstMount.current = true;
+      activeIdRef.current = object.id;
+      const next = parseMetadata(object.metadata);
+      setTitle(object.title ?? "");
+      setBody(object.body ?? "");
+      setQuestion(next.market?.question ?? "");
+      setProbability(
+        next.position?.current_probability ?? next.position?.initial_probability ?? 0.5,
+      );
+      setCloseAt(next.timing?.close_at ?? "");
+      setCriteria(next.resolution?.criteria ?? "");
+      setSourcesText((next.resolution?.source_urls ?? []).join("\n"));
+
+      lastSavedRef.current = {
+        title: object.title ?? "",
+        body: object.body ?? "",
+        question: next.market?.question ?? "",
+        probability: next.position?.current_probability ?? next.position?.initial_probability ?? 0.5,
+        closeAt: next.timing?.close_at ?? "",
+        criteria: next.resolution?.criteria ?? "",
+        sourcesText: (next.resolution?.source_urls ?? []).join("\n"),
+      };
+
+      setSaveState("idle");
+      setHandle(object.handle ?? "");
+      setHandleState("idle");
+      setEditingHandle(false);
+      setHandleDraft(object.handle ?? "");
+      setHandleError(null);
+      autoHandleRef.current = false;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [object.id]);
+  }, [object.id, object.title, object.body, object.metadata, object.handle]);
+
+  // Check for dirty state
+  React.useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
+    const current = { title, body, question, probability, closeAt, criteria, sourcesText };
+    const last = lastSavedRef.current;
+
+    const isDirty =
+      current.title !== last.title ||
+      current.body !== last.body ||
+      current.question !== last.question ||
+      current.probability !== last.probability ||
+      current.closeAt !== last.closeAt ||
+      current.criteria !== last.criteria ||
+      current.sourcesText !== last.sourcesText;
+
+    if (isDirty) {
+      setSaveState("dirty");
+    } else if (saveState === "dirty") {
+      setSaveState("idle");
+    }
+  }, [title, body, question, probability, closeAt, criteria, sourcesText, saveState]);
 
   const sources = React.useMemo(() => {
     return sourcesText
@@ -161,10 +208,11 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
   const percent = Math.round(clamp01(probability) * 100);
 
   React.useEffect(() => {
-    const seq = ++saveSeq.current;
-    setSaveState("saving");
+    if (saveState !== "dirty") return;
 
+    const seq = ++saveSeq.current;
     const handle = window.setTimeout(async () => {
+      setSaveState("saving");
       try {
         const prev = parseMetadata(object.metadata);
         const next: PredictionMetadata = {
@@ -174,9 +222,9 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
               prev.market?.outcomes && prev.market.outcomes.length
                 ? prev.market.outcomes
                 : [
-                    { key: "YES", label: "Yes" },
-                    { key: "NO", label: "No" },
-                  ],
+                  { key: "YES", label: "Yes" },
+                  { key: "NO", label: "No" },
+                ],
           },
           position: {
             initial_probability:
@@ -196,15 +244,22 @@ export function PredictionEditor({ object }: { object: TruthObjectRow }) {
           },
         });
         if (saveSeq.current !== seq) return;
+
+        lastSavedRef.current = { title, body, question, probability, closeAt, criteria, sourcesText };
         setSaveState("saved");
-      } catch {
+
+        window.setTimeout(() => {
+          if (saveSeq.current === seq) setSaveState("idle");
+        }, 2000);
+      } catch (err) {
         if (saveSeq.current !== seq) return;
+        console.error("Auto-save failed:", err);
         setSaveState("error");
       }
-    }, 500);
+    }, 1000);
 
     return () => window.clearTimeout(handle);
-  }, [body, closeAt, criteria, object.id, object.metadata, probability, question, sources, title]);
+  }, [saveState, body, closeAt, criteria, object.id, object.metadata, probability, question, sources, title, sourcesText]);
 
   React.useEffect(() => {
     if (autoHandleRef.current) return;

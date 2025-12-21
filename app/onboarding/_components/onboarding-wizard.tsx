@@ -23,7 +23,6 @@ type StepKey = "connect" | "prompt" | "paste" | "done";
 
 function stepForStatus(s: Status): StepKey {
   if (!s.hasObjects) return "prompt";
-  if (!s.connected) return "connect";
   return "done";
 }
 
@@ -66,21 +65,21 @@ export function OnboardingWizard({
     }
   }
 
-  const stepIndex = step === "prompt" ? 1 : step === "paste" ? 2 : step === "connect" ? 3 : 4;
+  const stepIndex = step === "prompt" ? 1 : step === "paste" ? 2 : 3;
 
   return (
     <div className="space-y-6">
       <Panel className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs font-semibold text-muted">Step {stepIndex} of 4</div>
+            <div className="text-xs font-semibold text-muted">Step {stepIndex} of 3</div>
             <div className="mt-1 text-lg font-semibold text-text">
               {step === "prompt"
                 ? "Generate your seed dump"
                 : step === "paste"
                   ? "Import your seed dump"
                   : step === "connect"
-                    ? "Connect your markets"
+                    ? "Connect your markets (optional)"
                     : "Ready"}
             </div>
             <div className="mt-1 text-sm text-muted">
@@ -89,7 +88,7 @@ export function OnboardingWizard({
                 : step === "paste"
                   ? "Paste the AI response here. We’ll turn it into referenceable truth objects."
                   : step === "connect"
-                    ? "Now connect Polymarket or Kalshi so your dashboard can mirror your real portfolio."
+                    ? "Connect Polymarket OR Kalshi if you want portfolio mirroring and live market context."
                     : "You’re in. Jump into Overview to see your raw data inventory."}
             </div>
           </div>
@@ -103,7 +102,7 @@ export function OnboardingWizard({
                   : "border-border/20 bg-panel/40 text-muted",
               )}
             >
-              Markets: {status.connected ? "Connected" : "Not connected"}
+              Markets: {status.connected ? "Connected" : "Optional"}
             </span>
             <span
               className={cn(
@@ -191,7 +190,7 @@ export function OnboardingWizard({
                     const res = await importOnboardingSeedDumpAction({ rawText });
                     setImportResult(res);
                     await refreshStatus();
-                    setStep("connect");
+                    setStep("done");
                   } catch (err) {
                     setError(err instanceof Error ? err.message : "Import failed.");
                   }
@@ -213,10 +212,11 @@ export function OnboardingWizard({
 
           <Panel className="lg:col-span-2 p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted">
-                Continue once at least one account is connected.
-              </div>
+              <div className="text-sm text-muted">You only need one account connected (Polymarket OR Kalshi).</div>
               <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => setStep("done")} className="h-10">
+                  Skip
+                </Button>
                 <Button
                   variant="secondary"
                   onClick={refreshStatus}
@@ -230,7 +230,6 @@ export function OnboardingWizard({
                     await refreshStatus();
                     setStep("done");
                   }}
-                  disabled={!status.connected}
                   className="h-10"
                 >
                   Finish
@@ -259,6 +258,9 @@ export function OnboardingWizard({
             </Link>
             <Button variant="ghost" onClick={refreshStatus} className="h-10">
               Refresh status
+            </Button>
+            <Button variant="secondary" onClick={() => setStep("connect")} className="h-10">
+              Connect markets (optional)
             </Button>
           </div>
         </Panel>

@@ -1,6 +1,8 @@
 export type JournalEntryLike = {
   title?: string | null;
   body: string;
+  type?: string;
+  metadata?: unknown;
 };
 
 function firstNonEmptyLine(body: string): string | null {
@@ -29,5 +31,19 @@ export function derivePreview(body: string): string {
 export function getDisplayTitle(entry: JournalEntryLike): string {
   const explicit = entry.title?.trim();
   if (explicit) return explicit;
+
+  const meta = entry.metadata && typeof entry.metadata === "object" ? (entry.metadata as Record<string, unknown>) : null;
+
+  // For truth objects like beliefs, prefer the statement if present
+  if (meta && typeof meta.statement === "string") {
+    return meta.statement;
+  }
+
+  // For predictions, prefer the question if present
+  const market = meta && typeof meta.market === "object" ? (meta.market as Record<string, unknown>) : null;
+  if (market && typeof market.question === "string") {
+    return market.question;
+  }
+
   return deriveTitle(entry.body) ?? "Untitled";
 }

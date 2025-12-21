@@ -34,14 +34,15 @@ export async function GET() {
   }
 
   const hasObjects = (count ?? 0) > 0;
-  const complete = connected && hasObjects;
+  // Onboarding is complete once the user has seeded their truth objects.
+  // Market connections are strongly encouraged but optional.
+  const complete = hasObjects;
 
   return NextResponse.json({
     connected,
     hasObjects,
     complete,
-    needsConnect: !connected,
-    needsSeedDump: connected && !hasObjects,
+    needsConnect: false,
+    needsSeedDump: !hasObjects,
   });
 }
-

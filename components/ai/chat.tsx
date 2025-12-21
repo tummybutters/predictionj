@@ -9,8 +9,11 @@ import { cn } from "@/lib/cn";
 import { useStreamingChat } from "@/components/ai/use-streaming-chat";
 
 export function AiChat() {
+  const [mode, setMode] = React.useState<"auto" | "ask" | "make">("auto");
   const { messages, input, setInput, isSending, sendMessage, stop, clear } = useStreamingChat({
     storageKey: "pj_ai_chat_messages",
+    apiPath: "/api/ai/assistant",
+    getExtraBody: () => ({ mode }),
   });
 
   const endRef = React.useRef<HTMLDivElement | null>(null);
@@ -82,6 +85,32 @@ export function AiChat() {
       </InsetPanel>
 
       <div className="mt-3 flex items-end gap-2">
+        <div className="flex shrink-0 items-center gap-1 rounded-full border border-border/20 bg-panel/45 p-1 shadow-plush">
+          {[
+            { key: "auto" as const, label: "Auto" },
+            { key: "ask" as const, label: "Ask" },
+            { key: "make" as const, label: "Make" },
+          ].map((opt) => {
+            const active = mode === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setMode(opt.key)}
+                className={cn(
+                  "h-9 rounded-full px-3 text-xs font-semibold transition-[background-color,color,transform,filter] duration-300 ease-spring",
+                  active
+                    ? "bg-accent text-white shadow-plush hover:brightness-105"
+                    : "text-text/70 hover:bg-panel/60",
+                )}
+                aria-pressed={active}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
         <textarea
           ref={textareaRef}
           value={input}

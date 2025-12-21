@@ -30,7 +30,7 @@ export default async function OnboardingPage() {
     .eq("user_id", user.id);
   const hasObjects = (count ?? 0) > 0;
 
-  const complete = connected && hasObjects;
+  const complete = hasObjects;
   if (complete) redirect("/dashboard");
 
   return (
@@ -45,12 +45,11 @@ export default async function OnboardingPage() {
           connected,
           hasObjects,
           complete,
-          needsConnect: !connected,
-          needsSeedDump: connected && !hasObjects,
+          needsConnect: false,
+          needsSeedDump: !hasObjects,
         }}
         extractionPrompt={ONBOARDING_MEMORY_EXTRACTION_PROMPT}
       />
     </main>
   );
 }
-

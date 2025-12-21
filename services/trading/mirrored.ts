@@ -10,6 +10,7 @@ import {
 } from "@/db/trading_mirror";
 import type { PortfolioData, PortfolioPosition } from "@/services/trading/portfolio";
 import { createSupabaseServerClient } from "@/db/supabase/server";
+import type { TradingProviderPreference } from "@/lib/trading/provider";
 
 function toNumber(value: unknown): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -22,6 +23,7 @@ function toNumber(value: unknown): number | null {
 
 export async function getMirroredPortfolioData(options?: {
   maxAgeSeconds?: number;
+  preferredProvider?: TradingProviderPreference;
 }): Promise<(PortfolioData & { mirrored: boolean })> {
   const ensured = await ensureUser();
 
@@ -30,7 +32,25 @@ export async function getMirroredPortfolioData(options?: {
     getKalshiAccount(ensured.user_id).catch(() => null),
   ]);
 
-  const provider: TradingProvider | null = poly ? "polymarket" : kalshi ? "kalshi" : null;
+  const pref = options?.preferredProvider ?? "auto";
+  const provider: TradingProvider | null =
+    pref === "polymarket"
+      ? poly
+        ? "polymarket"
+        : kalshi
+          ? "kalshi"
+          : null
+      : pref === "kalshi"
+        ? kalshi
+          ? "kalshi"
+          : poly
+            ? "polymarket"
+            : null
+        : poly
+          ? "polymarket"
+          : kalshi
+            ? "kalshi"
+            : null;
   if (!provider) {
     return {
       mirrored: true,
@@ -125,4 +145,3 @@ export async function getMirroredPortfolioData(options?: {
     suggested: [],
   };
 }
-

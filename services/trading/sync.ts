@@ -363,13 +363,52 @@ export async function syncTradingNow(): Promise<{ provider: TradingProvider | nu
     getKalshiAccount(ensured.user_id).catch(() => null),
   ]);
 
-  if (poly) {
-    await syncPolymarketForUser(ensured.user_id);
-    return { provider: "polymarket" };
+  return syncTradingNowForUser(ensured.user_id, {
+    preferredProvider: "auto",
+    polyConnected: Boolean(poly),
+    kalshiConnected: Boolean(kalshi),
+  });
+}
+
+export async function syncTradingNowForUser(
+  internalUserId: string,
+  options?: {
+    preferredProvider?: TradingProvider | "auto";
+    polyConnected?: boolean;
+    kalshiConnected?: boolean;
+  },
+): Promise<{ provider: TradingProvider | null }> {
+  const pref = options?.preferredProvider ?? "auto";
+  const polyOk = options?.polyConnected ?? true;
+  const kalshiOk = options?.kalshiConnected ?? true;
+
+  if ((pref === "polymarket" || pref === "auto") && polyOk) {
+    // Try Polymarket first when preferred/auto.
+    try {
+      await syncPolymarketForUser(internalUserId);
+      return { provider: "polymarket" };
+    } catch {
+      // fall through
+    }
   }
-  if (kalshi) {
-    await syncKalshiForUser(ensured.user_id);
+
+  if ((pref === "kalshi" || pref === "auto") && kalshiOk) {
+    try {
+      await syncKalshiForUser(internalUserId);
+      return { provider: "kalshi" };
+    } catch {
+      // fall through
+    }
+  }
+
+  // If explicit preference failed, attempt the other provider as fallback.
+  if (pref === "polymarket" && kalshiOk) {
+    await syncKalshiForUser(internalUserId);
     return { provider: "kalshi" };
+  }
+  if (pref === "kalshi" && polyOk) {
+    await syncPolymarketForUser(internalUserId);
+    return { provider: "polymarket" };
   }
 
   return { provider: null };

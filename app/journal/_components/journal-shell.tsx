@@ -9,13 +9,12 @@ import type { TruthObjectRow } from "@/db/truth_objects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
-import { createBlankJournalEntryAction } from "@/app/journal/actions";
 import { derivePreview, getDisplayTitle } from "@/lib/journal";
 import { PageHeader } from "@/components/app/page-header";
 import { Panel } from "@/components/ui/panel";
 import { EmptyState } from "@/components/ui/empty-state";
 
-type EntryLite = Pick<TruthObjectRow, "id" | "title" | "body" | "created_at" | "updated_at" | "handle" | "type">;
+type EntryLite = Pick<TruthObjectRow, "id" | "title" | "body" | "created_at" | "updated_at" | "handle" | "type" | "metadata">;
 type MentionableLite = Pick<TruthObjectRow, "id" | "type" | "handle" | "title" | "body" | "updated_at">;
 
 type JournalEntriesContextValue = {
@@ -49,49 +48,47 @@ function parseTs(s: string | undefined): number {
   return Number.isFinite(t) ? t : 0;
 }
 
-function mergeEntries(prev: EntryLite[], nextFromServer: EntryLite[]): EntryLite[] {
-  if (prev.length === 0) return nextFromServer;
-
-  const prevById = new Map(prev.map((e) => [e.id, e]));
-  const seen = new Set<string>();
-
-  const merged: EntryLite[] = nextFromServer.map((serverRow) => {
-    const local = prevById.get(serverRow.id);
-    seen.add(serverRow.id);
-
-    if (!local) return serverRow;
-
-    // Prefer the newer version by updated_at; keep local fields if it's newer.
-    return parseTs(serverRow.updated_at) >= parseTs(local.updated_at)
-      ? { ...local, ...serverRow }
-      : local;
+// Basic merge logic: replace local state with server state, but preserve any local updates
+// that haven't been "seen" by the server yet (using updated_at as a rough guide).
+function syncEntries(local: EntryLite[], server: EntryLite[]): EntryLite[] {
+  const localMap = new Map(local.map(e => [e.id, e]));
+  return server.map(s => {
+    const l = localMap.get(s.id);
+    if (!l) return s;
+    // If the server version is strictly newer than what we had, take it.
+    // Otherwise, prefer our local optimistic version.
+    return parseTs(s.updated_at) > parseTs(l.updated_at) ? s : { ...s, ...l };
   });
-
-  // Keep any locally-present entries the server didn't send (defensive).
-  for (const e of prev) {
-    if (!seen.has(e.id)) merged.push(e);
-  }
-
-  return merged;
 }
 
 export function JournalShell({
   initialEntries,
   mentionables,
   children,
+  title = "Journal",
+  subtitle,
+  newAction,
+  selectedId: propSelectedId,
+  hrefBase = "/journal",
 }: {
   initialEntries: EntryLite[];
   mentionables: MentionableLite[];
   children: React.ReactNode;
+  title?: string;
+  subtitle?: React.ReactNode;
+  newAction?: (formData: FormData) => Promise<void>;
+  selectedId?: string;
+  hrefBase?: string;
 }) {
   const pathname = usePathname();
-  const selectedId = getSelectedEntryId(pathname);
+  const derivedSelectedId = getSelectedEntryId(pathname);
+  const selectedId = propSelectedId ?? derivedSelectedId;
 
   const [entries, setEntries] = React.useState<EntryLite[]>(initialEntries);
   const [query, setQuery] = React.useState("");
 
   React.useEffect(() => {
-    setEntries((prev) => mergeEntries(prev, initialEntries));
+    setEntries((prev) => syncEntries(prev, initialEntries));
   }, [initialEntries]);
 
   const updateEntryLocal = React.useCallback((id: string, patch: Partial<EntryLite>) => {
@@ -112,12 +109,14 @@ export function JournalShell({
     <JournalEntriesContext.Provider value={{ entries, mentionables, updateEntryLocal }}>
       <div className="space-y-4">
         <PageHeader
-          title="Journal"
+          title={title}
           subtitle={
-            <>
-              Your library of entries — type <span className="font-mono">/</span> for commands,{" "}
-              <span className="font-mono">@</span> to link.
-            </>
+            subtitle || (
+              <>
+                Your library — type <span className="font-mono">/</span> for commands,{" "}
+                <span className="font-mono">@</span> to link.
+              </>
+            )
           }
           actions={
             <Link href="/dashboard">
@@ -135,15 +134,17 @@ export function JournalShell({
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search entries"
+                  placeholder="Search..."
                   className="h-9"
-                  aria-label="Search entries"
+                  aria-label="Search items"
                 />
-                <form action={createBlankJournalEntryAction}>
-                  <Button type="submit" size="sm" className="h-9">
-                    New
-                  </Button>
-                </form>
+                {newAction && (
+                  <form action={newAction}>
+                    <Button type="submit" size="sm" className="h-9">
+                      New
+                    </Button>
+                  </form>
+                )}
               </div>
 
               <div className="mt-3 max-h-[min(68vh,720px)] overflow-auto pr-1 no-scrollbar">
@@ -151,40 +152,43 @@ export function JournalShell({
                   <EmptyState className="rounded-2xl p-4">No matches.</EmptyState>
                 ) : (
                   <ol className="space-y-1">
-                  {filtered.map((e) => {
-                    const active = e.id === selectedId;
-                    const title = getDisplayTitle(e);
-                    const preview = derivePreview(e.body);
+                    {filtered.map((e) => {
+                      const active = e.id === selectedId;
+                      const title = getDisplayTitle(e);
+                      const preview = derivePreview(e.body);
+                      const href = hrefBase.includes("?")
+                        ? `${hrefBase}${encodeURIComponent(e.id)}`
+                        : `${hrefBase}/${e.id}`;
 
-                    return (
-                      <li key={e.id}>
-                        <Link
-                          href={`/journal/${e.id}`}
-                          className={cn(
-                            "group block rounded-xl border px-3 py-2 transition-[transform,background-color,border-color,box-shadow] duration-350 ease-spring motion-reduce:transition-none",
-                            active
-                              ? "border-accent/35 bg-panel/75 shadow-glass"
-                              : "border-border/20 bg-panel/35 hover:border-accent/25 hover:bg-panel/55 hover:shadow-plush",
-                          )}
-                          aria-current={active ? "page" : undefined}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-medium text-text">
-                                {title}
+                      return (
+                        <li key={e.id}>
+                          <Link
+                            href={href}
+                            className={cn(
+                              "group block rounded-xl border px-3 py-2 transition-[transform,background-color,border-color,box-shadow] duration-350 ease-spring motion-reduce:transition-none",
+                              active
+                                ? "border-accent/35 bg-panel/75 shadow-glass"
+                                : "border-border/20 bg-panel/35 hover:border-accent/25 hover:bg-panel/55 hover:shadow-plush",
+                            )}
+                            aria-current={active ? "page" : undefined}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium text-text">
+                                  {title}
+                                </div>
+                                <div className="mt-0.5 line-clamp-2 text-sm text-muted">
+                                  {preview || <span className="italic">Empty</span>}
+                                </div>
                               </div>
-                              <div className="mt-0.5 line-clamp-2 text-sm text-muted">
-                                {preview || <span className="italic">Empty</span>}
+                              <div className="shrink-0 font-mono text-[11px] text-muted">
+                                {formatDateCompact(e.created_at)}
                               </div>
                             </div>
-                            <div className="shrink-0 font-mono text-[11px] text-muted">
-                              {formatDateCompact(e.created_at)}
-                            </div>
-                          </div>
-                        </Link>
-                      </li>
-                    );
-                  })}
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ol>
                 )}
               </div>

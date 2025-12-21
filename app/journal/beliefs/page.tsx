@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ensureUser } from "@/services/auth/ensure-user";
@@ -6,29 +5,9 @@ import { listByType, type TruthObjectRow } from "@/db/truth_objects";
 import { createTruthObjectAction } from "@/app/journal/_actions/truth-objects";
 import { PageHeader } from "@/components/app/page-header";
 import { BeliefEditor } from "@/components/truth-objects/belief-editor";
-import { Button } from "@/components/ui/button";
-import { Pill } from "@/components/ui/pill";
 import { Panel } from "@/components/ui/panel";
-import { cn } from "@/lib/cn";
 
-function formatUpdatedAt(s: string): string {
-  const d = new Date(s);
-  if (!Number.isFinite(d.getTime())) return s;
-  const diffMs = Date.now() - d.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 60) return `${Math.max(1, mins)}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 48) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
-function beliefConfidenceLabel(v: number | null): string {
-  if (v == null) return "Unset";
-  const pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
-  const tier = pct >= 67 ? "High" : pct >= 45 ? "Medium" : "Low";
-  return `${pct}% ${tier}`;
-}
+import { JournalShell } from "@/app/journal/_components/journal-shell";
 
 export default async function JournalBeliefsPage({
   searchParams,
@@ -49,10 +28,10 @@ export default async function JournalBeliefsPage({
     "use server";
     const created = await createTruthObjectAction({
       type: "belief",
-      title: "New belief",
+      title: "",
       confidence: 0.7,
       metadata: { statement: "" },
-      handle: "new-belief",
+      handle: "belief",
     });
     redirect(`/journal/beliefs?id=${encodeURIComponent(created.id)}`);
   }
@@ -78,74 +57,18 @@ export default async function JournalBeliefsPage({
   const selected = beliefs.find((b) => b.id === selectedId) ?? beliefs[0] ?? null;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-6 pb-16 pt-8">
-      <PageHeader
+    <main className="mx-auto max-w-6xl px-6 pb-16 pt-8">
+      <JournalShell
         title="Beliefs"
-        subtitle="A library of compact, referenceable belief objects."
-        actions={
-          <form action={createBelief}>
-            <Button variant="secondary" size="sm" type="submit">
-              New Belief
-            </Button>
-          </form>
-        }
-      />
-
-      <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-        <Panel className="p-3">
-          <div className="flex items-center justify-between px-2 pb-2 pt-1">
-            <div className="text-xs font-semibold uppercase tracking-widest text-muted">Beliefs</div>
-            <Pill className="px-2 py-1 font-mono text-[11px]">{beliefs.length}</Pill>
-          </div>
-
-          <div className="space-y-2">
-            {beliefs.map((b) => {
-              const title =
-                (b.title ?? "").trim() ||
-                (typeof b.metadata?.statement === "string" ? (b.metadata.statement as string) : "") ||
-                "Untitled";
-              const active = selected?.id === b.id;
-              return (
-                <Link
-                  key={b.id}
-                  href={`/journal/beliefs?id=${encodeURIComponent(b.id)}`}
-                  className={cn(
-                    "block rounded-2xl border px-4 py-3 transition-colors",
-                    active
-                      ? "border-accent/35 bg-accent/10"
-                      : "border-border/15 bg-panel/35 hover:bg-panel/50",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="line-clamp-1 text-sm font-semibold text-text/85">
-                        {title}
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <Pill className="px-2 py-1 text-[11px]" tone="accent">
-                          {beliefConfidenceLabel(b.confidence)}
-                        </Pill>
-                        <span className="text-[11px] text-muted">
-                          Updated {formatUpdatedAt(b.updated_at)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={cn("mt-1 h-2 w-2 rounded-full", active ? "bg-accent" : "bg-border/40")} />
-                  </div>
-                </Link>
-              );
-            })}
-
-            {beliefs.length === 0 ? (
-              <div className="rounded-2xl border border-border/15 bg-panel/35 p-4 text-sm text-muted">
-                No beliefs yet. Create one to start building a reference library.
-              </div>
-            ) : null}
-          </div>
-        </Panel>
-
+        subtitle="Declare your world model and track your certainty over time."
+        initialEntries={beliefs}
+        mentionables={beliefs}
+        selectedId={selectedId}
+        hrefBase="/journal/beliefs?id="
+        newAction={createBelief}
+      >
         {selected ? <BeliefEditor object={selected} /> : <Panel className="p-6">—</Panel>}
-      </div>
+      </JournalShell>
     </main>
   );
 }

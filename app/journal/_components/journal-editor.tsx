@@ -83,21 +83,34 @@ function replaceRange(
 export function JournalEditor({ entry }: Props) {
   const { mentionables, updateEntryLocal } = useJournalEntries();
   const [body, setBody] = React.useState(entry.body);
-  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // --- Composer UI State ---
   const [menu, setMenu] = React.useState<ComposerMenu | null>(null);
   const [menuIndex, setMenuIndex] = React.useState(0);
-
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  // --- Logic Refs ---
   const saveSeq = React.useRef(0);
   const lastSavedBody = React.useRef(entry.body);
   const localPreviewTimeout = React.useRef<number | null>(null);
+  // --- Auto-save logic ---
+  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error" | "dirty">("idle");
+  const isFirstMount = React.useRef(true);
+
+  const activeIdRef = React.useRef(entry.id);
 
   React.useEffect(() => {
-    setBody(entry.body);
-    setSaveState("idle");
-    setMenu(null);
-    setMenuIndex(0);
-    lastSavedBody.current = entry.body;
+    // Only reset local state if the ID actually changed (meaning we navigated to a new entry)
+    // Avoid resetting when entry.body changes via RSC revalidations to prevent rubber-banding.
+    if (entry.id !== activeIdRef.current) {
+      activeIdRef.current = entry.id;
+      setBody(entry.body);
+      setSaveState("idle");
+      setMenu(null);
+      setMenuIndex(0);
+      lastSavedBody.current = entry.body;
+      isFirstMount.current = true;
+    }
   }, [entry.id, entry.body]);
 
   const mentionOptions = React.useMemo(() => {
@@ -166,26 +179,41 @@ export function JournalEditor({ entry }: Props) {
     });
   }
 
+  // Local preview updates (for the sidebar etc)
   React.useEffect(() => {
     if (localPreviewTimeout.current) window.clearTimeout(localPreviewTimeout.current);
     localPreviewTimeout.current = window.setTimeout(() => {
       updateEntryLocal(entry.id, { body });
-    }, 120);
+    }, 100);
     return () => {
       if (localPreviewTimeout.current) window.clearTimeout(localPreviewTimeout.current);
-      localPreviewTimeout.current = null;
     };
   }, [body, entry.id, updateEntryLocal]);
 
+  // Dirty state check
   React.useEffect(() => {
-    if (body === lastSavedBody.current) return;
-    const seq = ++saveSeq.current;
-    setSaveState("saving");
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    if (body !== lastSavedBody.current) {
+      setSaveState("dirty");
+    } else if (saveState === "dirty") {
+      setSaveState("idle");
+    }
+  }, [body, saveState]);
 
+  // Actual server save
+  React.useEffect(() => {
+    if (saveState !== "dirty") return;
+
+    const seq = ++saveSeq.current;
     const handle = window.setTimeout(async () => {
+      setSaveState("saving");
       try {
         const result = await saveJournalEntryDraftAction({ id: entry.id, body });
         if (saveSeq.current !== seq) return;
+
         lastSavedBody.current = body;
         setSaveState("saved");
         updateEntryLocal(entry.id, {
@@ -193,14 +221,19 @@ export function JournalEditor({ entry }: Props) {
           updated_at: result.updated_at,
           body,
         });
-      } catch {
+
+        window.setTimeout(() => {
+          if (saveSeq.current === seq) setSaveState("idle");
+        }, 2000);
+      } catch (err) {
         if (saveSeq.current !== seq) return;
+        console.error("Failed to save journal entry:", err);
         setSaveState("error");
       }
-    }, 650);
+    }, 1000);
 
     return () => window.clearTimeout(handle);
-  }, [body, entry.id, updateEntryLocal]);
+  }, [saveState, body, entry.id, updateEntryLocal]);
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (!menu) return;

@@ -59,11 +59,45 @@ export function GlobalHeader() {
   const searchParams = useSearchParams();
 
   const [query, setQuery] = React.useState(() => searchParams.get("q") ?? "");
+  const [providerMode, setProviderMode] = React.useState<"auto" | "polymarket" | "kalshi">("auto");
   const sectionKey = getSectionKey(pathname);
 
   React.useEffect(() => {
     setQuery(searchParams.get("q") ?? "");
   }, [searchParams]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadProvider() {
+      try {
+        const res = await fetch("/api/trading/provider", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json().catch(() => null)) as { provider?: string } | null;
+        const p = (data?.provider ?? "auto").toLowerCase();
+        if (!mounted) return;
+        if (p === "polymarket" || p === "kalshi" || p === "auto") setProviderMode(p);
+      } catch {
+        // ignore
+      }
+    }
+    loadProvider();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function setProvider(next: "auto" | "polymarket" | "kalshi") {
+    setProviderMode(next);
+    try {
+      await fetch("/api/trading/provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: next }),
+      });
+    } finally {
+      router.refresh();
+    }
+  }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,12 +106,18 @@ export function GlobalHeader() {
       router.push("/markets");
       return;
     }
+    if (providerMode === "kalshi") {
+      router.push(`/markets/kalshi?ticker=${encodeURIComponent(q)}`);
+      return;
+    }
     router.push(`/markets?q=${encodeURIComponent(q)}`);
   }
 
+  const marketsHref = providerMode === "kalshi" ? "/markets/kalshi" : "/markets";
+
   const tabs = [
     { href: "/dashboard", label: "Home" },
-    { href: "/markets", label: "Markets" },
+    { href: marketsHref, label: "Markets", key: "markets" as const },
     { href: "/journal", label: "Journal" },
     { href: "/overview", label: "Overview" },
     { href: "/qortana", label: "Qortana" },
@@ -106,7 +146,7 @@ export function GlobalHeader() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search markets"
+            placeholder={providerMode === "kalshi" ? "Search Kalshi tickers" : "Search markets"}
             className={cn(
               "h-9 w-full rounded-xl border border-border/20 bg-panel/45 px-4 text-sm text-text/85 outline-none shadow-plush",
               "placeholder:text-muted/60 focus:border-accent/35 focus:ring-2 focus:ring-accent/20",
@@ -115,9 +155,40 @@ export function GlobalHeader() {
         </form>
 
         <SignedIn>
+          <div className="hidden items-center gap-1 rounded-full border border-border/20 bg-panel/45 p-1 shadow-plush md:flex">
+            {[
+              { key: "auto" as const, label: "Auto" },
+              { key: "polymarket" as const, label: "Poly" },
+              { key: "kalshi" as const, label: "Kalshi" },
+            ].map((opt) => {
+              const active = providerMode === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => void setProvider(opt.key)}
+                  className={cn(
+                    "h-8 rounded-full px-3 text-xs font-semibold transition-[background-color,color,transform,filter] duration-300 ease-spring",
+                    active
+                      ? "bg-accent text-white shadow-plush hover:brightness-105"
+                      : "text-text/70 hover:bg-panel/60",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
           <nav className="ml-auto flex items-center gap-5 text-sm font-medium text-muted">
             {tabs.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isMarkets = "key" in item && item.key === "markets";
+              const isActive = isMarkets
+                ? pathname === "/markets" ||
+                  pathname.startsWith("/markets/") ||
+                  pathname === "/polymarket" ||
+                  pathname.startsWith("/polymarket/")
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}

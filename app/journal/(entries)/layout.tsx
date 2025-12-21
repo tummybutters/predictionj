@@ -1,6 +1,7 @@
 import { ensureUser } from "@/services/auth/ensure-user";
 import { listByType, listRecent, type TruthObjectRow } from "@/db/truth_objects";
 import { JournalShell } from "@/app/journal/_components/journal-shell";
+import { createBlankJournalEntryAction } from "@/app/journal/actions";
 import { PageHeader } from "@/components/app/page-header";
 import { Panel } from "@/components/ui/panel";
 
@@ -37,7 +38,11 @@ export default async function JournalEntriesLayout({ children }: { children: Rea
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-6 pb-10 pt-24">
-      <JournalShell initialEntries={notes} mentionables={mentionables}>
+      <JournalShell
+        initialEntries={notes}
+        mentionables={mentionables}
+        newAction={createBlankJournalEntryAction}
+      >
         {children}
       </JournalShell>
     </main>

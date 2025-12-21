@@ -4,10 +4,11 @@ import * as React from "react";
 
 import type { TruthObjectRow } from "@/db/truth_objects";
 import { cn } from "@/lib/cn";
-import { isDefaultHandle, normalizeShortHandle } from "@/lib/handles";
+import { normalizeShortHandle } from "@/lib/handles";
 import { Pill } from "@/components/ui/pill";
 import { InsetPanel, Panel } from "@/components/ui/panel";
 import { suggestHandleAction, updateTruthObjectAction } from "@/app/journal/_actions/truth-objects";
+import { deriveTitle } from "@/lib/journal";
 
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;
@@ -21,102 +22,112 @@ function confidenceLabel(v: number | null): { label: string; pct: number } {
 }
 
 export function BeliefEditor({ object }: { object: TruthObjectRow }) {
+  // --- Local State ---
   const [title, setTitle] = React.useState(object.title ?? "");
   const [statement, setStatement] = React.useState(
     typeof object.metadata?.statement === "string" ? (object.metadata.statement as string) : "",
   );
   const [confidence, setConfidence] = React.useState<number>(object.confidence ?? 0.7);
-  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
   const [handle, setHandle] = React.useState(object.handle ?? "");
+
+  // --- UI/UX State ---
+  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error" | "dirty">("idle");
   const [handleState, setHandleState] = React.useState<"idle" | "loading" | "error">("idle");
   const [editingHandle, setEditingHandle] = React.useState(false);
   const [handleDraft, setHandleDraft] = React.useState(object.handle ?? "");
   const [handleError, setHandleError] = React.useState<string | null>(null);
-  const autoHandleRef = React.useRef(false);
 
+  // --- Refs for logic ---
   const saveSeq = React.useRef(0);
-  const lastSaved = React.useRef({ title: object.title, statement, confidence });
+  const lastSavedRef = React.useRef({ title: object.title ?? "", statement, confidence });
+  const isFirstMount = React.useRef(true);
 
+  const activeIdRef = React.useRef(object.id);
+
+  // Reset state when object changes
   React.useEffect(() => {
-    const nextStatement =
-      typeof object.metadata?.statement === "string" ? (object.metadata.statement as string) : "";
-    setTitle(object.title ?? "");
-    setStatement(nextStatement);
-    setConfidence(object.confidence ?? 0.7);
-    setSaveState("idle");
-    setHandle(object.handle ?? "");
-    setHandleState("idle");
-    setEditingHandle(false);
-    setHandleDraft(object.handle ?? "");
-    setHandleError(null);
-    autoHandleRef.current = false;
-    lastSaved.current = { title: object.title, statement: nextStatement, confidence: object.confidence ?? 0.7 };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [object.id]);
+    if (object.id !== activeIdRef.current) {
+      const nextStatement =
+        typeof object.metadata?.statement === "string" ? (object.metadata.statement as string) : "";
+      activeIdRef.current = object.id;
+      setTitle(object.title ?? "");
+      setStatement(nextStatement);
+      setConfidence(object.confidence ?? 0.7);
+      setHandle(object.handle ?? "");
+      setHandleDraft(object.handle ?? "");
+      setSaveState("idle");
+      setEditingHandle(false);
+      setHandleError(null);
+      lastSavedRef.current = {
+        title: object.title ?? "",
+        statement: nextStatement,
+        confidence: object.confidence ?? 0.7,
+      };
+      isFirstMount.current = true;
+    }
+  }, [object.id, object.title, object.confidence, object.metadata, object.handle]);
 
-  const label = confidenceLabel(confidence);
-
+  // Check for dirty state
   React.useEffect(() => {
-    const next = { title, statement, confidence };
-    const prev = lastSaved.current;
-    if (next.title === prev.title && next.statement === prev.statement && next.confidence === prev.confidence) {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
       return;
     }
 
-    const seq = ++saveSeq.current;
-    setSaveState("saving");
+    const current = { title, statement, confidence };
+    const last = lastSavedRef.current;
 
-    const t = window.setTimeout(async () => {
-      try {
-        await updateTruthObjectAction({
-          id: object.id,
-          patch: {
-            title,
-            confidence: clamp01(confidence),
-            metadata: { ...(object.metadata ?? {}), statement },
-          },
-        });
-        if (saveSeq.current !== seq) return;
-        lastSaved.current = next;
-        setSaveState("saved");
-      } catch {
-        if (saveSeq.current !== seq) return;
-        setSaveState("error");
-      }
-    }, 450);
+    const isDirty =
+      current.title !== last.title ||
+      current.statement !== last.statement ||
+      current.confidence !== last.confidence;
 
-    return () => window.clearTimeout(t);
-  }, [confidence, object.id, object.metadata, statement, title]);
+    if (isDirty) {
+      setSaveState("dirty");
+    } else if (saveState === "dirty") {
+      setSaveState("idle");
+    }
+  }, [title, statement, confidence, saveState]);
 
+  // Handle auto-save
   React.useEffect(() => {
-    if (autoHandleRef.current) return;
-    if (!isDefaultHandle(handle)) return;
-    if (saveState !== "saved") return;
-    const seed = (statement || title).trim();
-    if (seed.length < 3) return;
+    if (saveState !== "dirty") return;
 
-    const t = window.setTimeout(async () => {
-      autoHandleRef.current = true;
-      setHandleState("loading");
+    const seq = ++saveSeq.current;
+    const timeout = window.setTimeout(async () => {
+      setSaveState("saving");
       try {
-        const res = await suggestHandleAction({ id: object.id, seed });
-        setHandle(res.handle);
-        setHandleDraft(res.handle);
-        setHandleState("idle");
-      } catch {
-        setHandleState("error");
-        window.setTimeout(() => setHandleState("idle"), 1200);
+        const patch = {
+          title,
+          confidence: clamp01(confidence),
+          metadata: { ...(object.metadata ?? {}), statement },
+        };
+        await updateTruthObjectAction({ id: object.id, patch });
+
+        if (saveSeq.current !== seq) return;
+
+        lastSavedRef.current = { title, statement, confidence };
+        setSaveState("saved");
+
+        // Return to idle after a brief "saved" flash
+        window.setTimeout(() => {
+          if (saveSeq.current === seq) setSaveState("idle");
+        }, 2000);
+      } catch (err) {
+        if (saveSeq.current !== seq) return;
+        console.error("Auto-save failed:", err);
+        setSaveState("error");
       }
     }, 800);
 
-    return () => window.clearTimeout(t);
-  }, [handle, object.id, saveState, statement, title]);
+    return () => window.clearTimeout(timeout);
+  }, [saveState, title, statement, confidence, object.id, object.metadata]);
 
+  // Handle generation logic (AI Naming)
   async function regenerateHandle() {
-    autoHandleRef.current = true;
     setHandleState("loading");
     try {
-      const seed = (statement || title).trim();
+      const seed = (statement || title || "belief").trim();
       const res = await suggestHandleAction({ id: object.id, seed });
       setHandle(res.handle);
       setHandleDraft(res.handle);
@@ -145,147 +156,144 @@ export function BeliefEditor({ object }: { object: TruthObjectRow }) {
     }
   }
 
+  const label = confidenceLabel(confidence);
+  const inferredTitle = title.trim() ? null : deriveTitle(statement);
+
   return (
     <div className="space-y-4">
       <Panel className="p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/10 pb-4">
           <div className="min-w-0">
-            <div className="text-xs text-muted">Belief</div>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Pill className="px-2 py-1 font-mono text-[11px] text-text/80" tone="neutral">
-              @{handle}
-            </Pill>
-            <button
-              type="button"
-              onClick={regenerateHandle}
-              disabled={handleState === "loading"}
-              className={cn(
-                "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider shadow-plush transition",
-                handleState === "loading"
-                  ? "border-border/15 bg-panel/40 text-muted"
-                  : "border-border/20 bg-panel/55 text-text/70 hover:bg-panel/70",
-              )}
-              aria-live="polite"
-            >
-              {handleState === "loading" ? "Naming…" : handleState === "error" ? "Try again" : "AI"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingHandle((v) => !v);
-                setHandleDraft(handle);
-                setHandleError(null);
-              }}
-              className={cn(
-                "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider shadow-plush transition",
-                "border-border/20 bg-panel/55 text-text/70 hover:bg-panel/70",
-              )}
-            >
-              Edit
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted/60">Belief Object</span>
+              <Pill tone="neutral" className="px-2 py-0.5 font-mono text-[10px]">@{handle}</Pill>
+            </div>
+            <div className="mt-1 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={regenerateHandle}
+                disabled={handleState === "loading"}
+                className={cn(
+                  "rounded-lg border px-2 py-1 text-[10px] font-semibold uppercase tracking-tight shadow-sm transition",
+                  handleState === "loading"
+                    ? "border-border/15 bg-panel/40 text-muted"
+                    : "border-border/20 bg-panel/55 text-text/70 hover:bg-panel/70",
+                )}
+              >
+                {handleState === "loading" ? "Naming…" : "AI Suggest"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingHandle((v) => !v);
+                  setHandleDraft(handle);
+                  setHandleError(null);
+                }}
+                className="rounded-lg border border-border/20 bg-panel/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-tight text-text/70 shadow-sm hover:bg-panel/70"
+              >
+                {editingHandle ? "Cancel" : "Edit Handle"}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
             <Pill
-              tone={saveState === "error" ? "danger" : saveState === "saved" ? "positive" : "neutral"}
-              className={cn("px-2 py-1 font-mono text-[11px]", saveState === "idle" && "opacity-80")}
-              aria-live="polite"
+              tone={
+                saveState === "error" ? "danger" :
+                  saveState === "saved" ? "positive" :
+                    saveState === "saving" ? "accent" :
+                      saveState === "dirty" ? "neutral" : "neutral"
+              }
+              className={cn(
+                "px-2 py-1 font-mono text-[11px] transition-opacity duration-300",
+                saveState === "idle" && "opacity-40"
+              )}
             >
-              {saveState === "saving"
-                ? "Saving…"
-                : saveState === "saved"
-                  ? "Saved"
-                  : saveState === "error"
-                    ? "Save failed"
-                    : "Ready"}
+              {saveState === "saving" ? "Saving…" :
+                saveState === "saved" ? "Saved" :
+                  saveState === "error" ? "Error" :
+                    saveState === "dirty" ? "Unsaved Changes" : "Synced"}
             </Pill>
           </div>
         </div>
-      </div>
 
-      {editingHandle ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            value={handleDraft}
-            onChange={(e) => setHandleDraft(e.target.value)}
-            className={cn(
-              "h-9 w-56 rounded-xl border border-border/20 bg-panel2/35 px-3 text-xs font-mono text-text/85 outline-none shadow-plush",
-              "placeholder:text-muted/60 focus:border-accent/35 focus:ring-2 focus:ring-accent/15",
-            )}
-            placeholder="short-handle"
-          />
-          <button
-            type="button"
-            onClick={saveHandle}
-            className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white shadow-plush hover:brightness-105"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingHandle(false);
-              setHandleDraft(handle);
-              setHandleError(null);
-            }}
-            className="rounded-xl border border-border/20 bg-panel/55 px-3 py-2 text-xs font-semibold text-text/70 hover:bg-panel/70"
-          >
-            Cancel
-          </button>
-          {handleError ? <span className="text-xs text-rose-300">{handleError}</span> : null}
-        </div>
-      ) : null}
+        {editingHandle && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-panel/30 p-3">
+            <input
+              value={handleDraft}
+              onChange={(e) => setHandleDraft(e.target.value)}
+              className="h-8 w-48 rounded-lg border border-border/20 bg-panel2/40 px-3 font-mono text-xs text-text outline-none focus:border-accent/40"
+              placeholder="short-handle"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={saveHandle}
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:brightness-110"
+            >
+              Save
+            </button>
+            {handleError && <span className="text-[10px] text-rose-400">{handleError}</span>}
+          </div>
+        )}
 
-        <div className="mt-5 space-y-4">
-          <div>
-            <div className="text-xs font-semibold text-muted">Title</div>
+        <div className="mt-6 space-y-6">
+          <div className="group relative">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted/70">Title</label>
+              {inferredTitle && (
+                <span className="text-[10px] text-muted/50 italic">Auto-deriving from statement</span>
+              )}
+            </div>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Short name for this belief"
+              placeholder={inferredTitle || "Descriptive name"}
               className={cn(
-                "mt-2 h-10 w-full rounded-2xl border border-border/20 bg-panel2/35 px-4 text-sm text-text/85 outline-none shadow-inset",
-                "placeholder:text-muted/60 focus:border-accent/35 focus:ring-2 focus:ring-accent/15",
+                "mt-2 w-full bg-transparent text-xl font-bold text-text outline-none placeholder:text-muted/30",
+                !title && "text-text/50"
               )}
             />
           </div>
 
-          <div>
-            <div className="text-xs font-semibold text-muted">Statement</div>
+          <div className="relative">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted/70">Statement</label>
             <textarea
               value={statement}
               onChange={(e) => setStatement(e.target.value)}
-              placeholder="Write the belief as a clear, testable statement."
-              className={cn(
-                "mt-2 min-h-[140px] w-full resize-none rounded-2xl border border-border/20 bg-panel2/35 px-4 py-3 text-sm text-text/85 outline-none shadow-inset",
-                "placeholder:text-muted/60 focus:border-accent/35 focus:ring-2 focus:ring-accent/15",
-              )}
+              placeholder="What do you believe to be true? Make it testable."
+              className="mt-2 min-h-[160px] w-full resize-none bg-transparent text-[15px] leading-relaxed text-text/90 outline-none placeholder:text-muted/30"
             />
           </div>
         </div>
       </Panel>
 
-      <InsetPanel className="p-5">
-        <div className="flex items-center justify-between gap-3">
+      <InsetPanel className="p-6">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-text/85">Confidence</div>
-            <div className="mt-1 text-xs text-muted">How strongly you hold this belief right now.</div>
+            <div className="text-sm font-bold text-text/90">Confidence</div>
+            <div className="mt-0.5 text-xs text-muted">Current level of certainty</div>
           </div>
-          <Pill tone="accent" className="px-2 py-1 font-mono text-[11px]">
-            {label.pct}% {label.label}
-          </Pill>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-lg font-bold text-accent">{label.pct}%</span>
+            <Pill tone="accent" className="px-2 py-0.5 text-[10px] uppercase tracking-widest">{label.label}</Pill>
+          </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-6">
           <input
             type="range"
             min={0}
             max={100}
+            step={1}
             value={Math.round(clamp01(confidence) * 100)}
             onChange={(e) => setConfidence(Number(e.target.value) / 100)}
-            className="w-full accent-[rgb(var(--accent))]"
+            className="w-full cursor-pointer accent-accent"
           />
-          <div className="mt-2 flex justify-between text-[11px] font-mono text-muted">
-            <span>0%</span>
-            <span>50%</span>
-            <span>100%</span>
+          <div className="mt-3 flex justify-between px-1 text-[10px] font-bold uppercase tracking-tighter text-muted/40">
+            <span>Doubt</span>
+            <span>Uncertain</span>
+            <span>Certainty</span>
           </div>
         </div>
       </InsetPanel>
